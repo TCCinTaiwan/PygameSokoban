@@ -11,20 +11,20 @@
 ## Installation[↶](#)
 1. Python:
 
-[ ![Python](https://www.python.org/static/img/python-logo.png)](https://www.python.org/downloads/)
+    [ ![Python](https://www.python.org/static/img/python-logo.png)](https://www.python.org/downloads/)
 
->注意: 本專案使用的是Python3
+    >注意: 本專案使用的是Python3
 
-![Python Install](python-install.png)
+    ![Python Install](python-install.png)
 
->要勾"Add Python to PATH"，把Python加到環境變數中。
+    >要勾"Add Python to PATH"，把Python加到環境變數中。
 
 2. Pygame:
 
-```bash
-pip install pip --upgrade
-pip install pygame
-```
+    ```bash
+    pip install pip --upgrade
+    pip install pygame
+    ```
 
 ## Usage[↶](#)
 
