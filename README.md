@@ -5,8 +5,8 @@
 * **[Usage](#usage)**
 
 ## Introduction[↶](#)
-這是2016年電腦遊戲設計實務(pygame)的期末作業，是用竣煌的素材下去改寫的。
 ![截圖](screenshot.png)
+這是2016年電腦遊戲設計實務(pygame)的期末作業，是用竣煌的素材下去改寫的。
 
 ## Installation[↶](#)
 1. Python:
@@ -14,6 +14,7 @@
 [ ![Python](https://www.python.org/static/img/python-logo.png)](https://www.python.org/downloads/)
 
 >注意: 本專案使用的是Python3
+
 ![Python Install](python-install.png)
 
 >要勾"Add Python to PATH"，把Python加到環境變數中。
