@@ -273,15 +273,14 @@ class Sokoban():
                 elif self.confirm["direction"] == "horizonal":
                     x += text_width
         ticks = pygame.time.get_ticks()
-
-        if self.mode == Sokoban.InitMode:
-            drawInitMode()
-        elif self.mode in [Sokoban.PlayingMode, Sokoban.CopyCatMode]:
-            drawStage()
-        elif self.mode == Sokoban.RecodeMode:
-            drawRecode()
-        elif self.mode == Sokoban.DevelopMode:
-            drawDevelop()
+        draws = {
+            Sokoban.InitMode : drawInitMode,
+            Sokoban.PlayingMode : drawStage,
+            Sokoban.CopyCatMode : drawStage,
+            Sokoban.RecodeMode : drawRecode,
+            Sokoban.DevelopMode : drawDevelop
+        }
+        draws[self.mode]()
 
         if self.confirm["show"]:
             drawConfirm()
@@ -439,8 +438,7 @@ class Sokoban():
                     "direction" : "vertical"
                 }
                 if len(self.steps) == 0:
-                    self.confirm["options"].pop(1)
-                    self.confirm["options"].pop(0)
+                    self.confirm["options"][0:1] = []
                 self.confirmResize()
             x, y = mouse_position[0] // 30, mouse_position[1] // 30
             if y in range(self.size[1]):
