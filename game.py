@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import pygame
 import json
+import random
+import names
 class Color:
     black = (0, 0, 0)
     white = (255, 255, 255)
@@ -343,6 +345,37 @@ class Sokoban():
                 elif pygame.mouse.get_pressed()[0]:
                     self.confirm["show"] = False
         def initHandler():
+            def submit():
+                def randMaleName():
+                    self.username = names.get_first_name(gender = "male")
+                    self.mode = Sokoban.PlayingMode
+                def randFemaleName():
+                    self.username = names.get_first_name(gender = "female")
+                    self.mode = Sokoban.PlayingMode
+                if self.username != "":
+                    self.mode = Sokoban.PlayingMode
+                else:
+                    self.confirm = {
+                        "message" : "是否隨機命名？",
+                        "options" : [
+                            {
+                                "text": "是(男)",
+                                "callback" : randMaleName
+                            },
+                            {
+                                "text": "是(女)",
+                                "callback" : randFemaleName
+                            },
+                            {
+                                "text": "否",
+                                "callback" : None
+                            }
+                        ],
+                        "select" : 0,
+                        "show" : True,
+                        "direction" : "horizonal"
+                    }
+                    self.confirmResize()
             if event.type == pygame.KEYDOWN:
                 # if event.key == pygame.K_LEFT:
                 #     self.theme = self.theme - 1
@@ -355,8 +388,8 @@ class Sokoban():
                     self.username = self.username[:-1]
                 elif event.key == pygame.K_ESCAPE:
                     self.username = ""
-                elif (event.key in [pygame.K_RETURN, pygame.K_KP_ENTER]) and self.username != "":
-                    self.mode = Sokoban.PlayingMode
+                elif (event.key in [pygame.K_RETURN, pygame.K_KP_ENTER]):
+                    submit()
                 else:
                     if len(self.username) <= 20:
                         if event.key in range(48, 58): # 0~9
@@ -372,7 +405,43 @@ class Sokoban():
                             self.username += chr(event.key - 208)
                         # else:
                         #     print(event.key)
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if pygame.mouse.get_pressed()[0]:
+                    submit()
         def playingHandler():
+            def menu():
+                self.confirm = {
+                    "message" : "選單",
+                    "options" : [
+                        {
+                            "text": "重新開始 (F2)",
+                            "callback" : self.loadStage
+                        },
+                        {
+                            "text": "上一步 (F3)",
+                            "callback" : self.previous
+                        },
+                        {
+                            "text": "榮譽榜 (F4)",
+                            "callback" : self.toRecordMode
+                        },
+                        {
+                            "text": "音樂: %s (F5)" % ("開" if self.musicPlaying else "關"),
+                            "callback" : self.musicOnOff
+                        },
+                        {
+                            "text": "結束遊戲 (Alt + F4)",
+                            "callback" : self.quit
+                        }
+                    ],
+                    "select" : 0,
+                    "show" : True,
+                    "direction" : "vertical"
+                }
+                if len(self.steps) == 0:
+                    self.confirm["options"].pop(1)
+                    self.confirm["options"].pop(0)
+                self.confirmResize()
             x, y = mouse_position[0] // 30, mouse_position[1] // 30
             if y in range(self.size[1]):
                 if x in range(self.size[0]):
@@ -426,33 +495,11 @@ class Sokoban():
                 windowSize = pygame.display.get_surface().get_size()
                 if mouse_position[0] in range(10, 43):
                     if mouse_position[1] in range(windowSize[1] - 40, windowSize[1] - 8):
-                        self.confirm = {
-                            "message" : "選單",
-                            "options" : [
-                                {
-                                    "text": "重新開始",
-                                    "callback" : self.loadStage
-                                },
-                                {
-                                    "text": "上一步",
-                                    "callback" : self.previous
-                                },
-                                {
-                                    "text": "榮譽榜",
-                                    "callback" : self.toRecordMode
-                                },
-                                {
-                                    "text": "音樂: " + ("開" if self.musicPlaying else "關"),
-                                    "callback" : self.musicOnOff
-                                }
-                            ],
-                            "select" : 0,
-                            "show" : True,
-                            "direction" : "vertical"
-                        }
-                        self.confirmResize()
+                        menu()
             if event.type == pygame.KEYDOWN:
-                if event.key in [pygame.K_LEFT, pygame.K_a]:
+                if event.key == pygame.K_ESCAPE:
+                    menu()
+                elif event.key in [pygame.K_LEFT, pygame.K_a]:
                     self.path = []
                     self.move(-1, 0)
                 elif event.key in [pygame.K_RIGHT, pygame.K_d]:
@@ -552,16 +599,15 @@ class Sokoban():
                 quit()
             elif self.confirm["show"]:
                 confirmHandler()
-            elif self.mode == Sokoban.InitMode:
-                initHandler()
-            elif self.mode == Sokoban.PlayingMode:
-                playingHandler()
-            elif self.mode == Sokoban.RecodeMode:
-                recodeHandler()
-            elif self.mode == Sokoban.CopyCatMode:
-                copyCatHandler()
-            elif self.mode == Sokoban.DevelopMode:
-                developHandler()
+            else:
+                handlers = {
+                    Sokoban.InitMode : initHandler,
+                    Sokoban.PlayingMode : playingHandler,
+                    Sokoban.RecodeMode : recodeHandler,
+                    Sokoban.CopyCatMode : copyCatHandler,
+                    Sokoban.DevelopMode : developHandler,
+                }
+                handlers[self.mode]()
 
     def move(self, x, y):
         if self.position[1] + y in range(len(self.stage)):
