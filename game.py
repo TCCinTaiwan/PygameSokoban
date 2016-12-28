@@ -475,14 +475,29 @@ class Sokoban():
                     # print((x, y))
                     if self.stage[y][x] in range(3, 5):
                         if pow(x - self.position[0], 2) + pow(y - self.position[1], 2) > 1:
-                            diff = mouse_position[0] - x * 30 - 15, mouse_position[1] - y * 30 - 15
-                            offsetX = diff[0] // abs(diff[0]) if abs(diff[0]) > abs(diff[1]) else 0
-                            offsetY = 0 if abs(diff[0]) > abs(diff[1]) else diff[1] // abs(diff[1])
+                            difference = mouse_position[0] - x * 30 - 15, mouse_position[1] - y * 30 - 15
+                            offsetX = difference[0] // abs(difference[0]) if abs(difference[0]) > abs(difference[1]) else 0
+                            offsetY = 0 if abs(difference[0]) > abs(difference[1]) else difference[1] // abs(difference[1])
+                            if self.distance[y + offsetY][x + offsetX] == -1: # 當前方向沒有，測試次要方向
+                                # if offsetX == 0:
+                                #     offsetX, offsetY = 1 if difference[0] > 0 else -1 , 0
+                                # else:
+                                #     offsetX, offsetY = 0, 1 if difference[1] > 0 else -1
+                                offsetX, offsetY = (1 if difference[0] > 0 else -1) if offsetX == 0 else 0, 0 if offsetX == 0 else (1 if difference[1] > 0 else -1)
+
+                                if self.distance[y + offsetY][x + offsetX] == -1: # 當前與次要方向都沒有，測試反方向
+                                    offsetX = -difference[0] // abs(difference[0]) if abs(difference[0]) > abs(difference[1]) else 0
+                                    offsetY = 0 if abs(difference[0]) > abs(difference[1]) else -difference[1] // abs(difference[1])
+                                    if self.distance[y + offsetY][x + offsetX] == -1: # 當前方向、反方向與次要方向都沒有，測試次要反方向
+                                        offsetX, offsetY = (-1 if difference[0] > 0 else 1) if offsetX == 0 else 0, 0 if offsetX == 0 else (-1 if difference[1] > 0 else 1)
+
                             if self.distance[y + offsetY][x + offsetX] > 0:
-                                self.path = [(-offsetX, -offsetY)]
-                                # print((x, y), (x + offsetX, y + offsetY))
+                                if self.stage[y - offsetY][x - offsetX] in range(2):
+                                    self.path = [(-offsetX, -offsetY)]
                             else:
                                 offsetX, offsetY = 0, 0
+                            # print((x, y), (x + offsetX, y + offsetY))
+
                         else:
                             self.path = [(x - self.position[0], y - self.position[1])]
                     if self.stage[y + offsetY][x + offsetX] in range(2):
