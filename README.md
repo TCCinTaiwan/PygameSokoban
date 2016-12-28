@@ -24,6 +24,7 @@
     ```bash
     pip install pip --upgrade
     pip install pygame
+    pip install names
     ```
 
 ## Usage[↶](#)

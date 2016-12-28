@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import pygame
 import json
-import random
 import names
 class Color:
     black = (0, 0, 0)
