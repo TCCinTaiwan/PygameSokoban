@@ -23,6 +23,7 @@ class Sokoban():
         pygame.display.set_caption('倉庫番')
         pygame.mixer.music.load("musics/0.mp3") # 背景音樂
         pygame.mixer.music.play(-1, 0.0) # 重複播放
+        self.musicPlaying = True
         self.gameDisplay = pygame.display.set_mode((420, 420))
         self.clock = pygame.time.Clock()
         self.fonts = [
@@ -150,6 +151,12 @@ class Sokoban():
         width = windowSize[0] - 20
         top = (windowSize[1] - height) // 2
         self.confirm["rect"] = (10, top , width, height)
+    def musicOnOff(self):
+        if self.musicPlaying:
+            pygame.mixer.music.pause()
+        else:
+            pygame.mixer.music.unpause()
+        self.musicPlaying = not self.musicPlaying
     def draw(self):
         ticks = pygame.time.get_ticks()
         if self.mode == Sokoban.InitMode:
@@ -168,9 +175,10 @@ class Sokoban():
             self.gameDisplay.blit(self.fonts[2].render("重新開始：F2" , 1, self.colors[1].rgb), (10, 180))
             self.gameDisplay.blit(self.fonts[2].render("上一步：F3" , 1, self.colors[1].rgb), (10, 200))
             self.gameDisplay.blit(self.fonts[2].render("榮譽榜：F4" , 1, self.colors[1].rgb), (10, 220))
-            self.gameDisplay.blit(self.fonts[2].render("確認：Enter" , 1, self.colors[1].rgb), (10, 240))
-            self.gameDisplay.blit(self.fonts[2].render("取消：Esc" , 1, self.colors[1].rgb), (10, 260))
-            self.gameDisplay.blit(self.fonts[2].render("（點擊榮譽榜可看紀錄）" , 1, self.colors[1].rgb), (10, 280))
+            self.gameDisplay.blit(self.fonts[2].render("音樂開關：F5" , 1, self.colors[1].rgb), (10, 240))
+            self.gameDisplay.blit(self.fonts[2].render("確認：Enter" , 1, self.colors[1].rgb), (10, 260))
+            self.gameDisplay.blit(self.fonts[2].render("取消：Esc" , 1, self.colors[1].rgb), (10, 280))
+            self.gameDisplay.blit(self.fonts[2].render("（點擊榮譽榜可看紀錄）" , 1, self.colors[1].rgb), (10, 300))
             # self.gameDisplay.blit(self.fonts[2].render("主題：《 %d 》" % (self.theme) , 1, self.colors[1].rgb), (10, 280))
             if ticks % self.blinkCycleTime[1] > self.blinkCycleTime[0]:
                 self.gameDisplay.blit(self.fonts[2].render("歡迎來到倉庫番的世界!!" , 1, self.colors[1].rgb), (120, 380))
@@ -211,7 +219,7 @@ class Sokoban():
             self.gameDisplay.blit(self.fonts[3].render(step, 1, self.colors[1].rgb), (0, 10))
             self.gameDisplay.blit(self.fonts[3].render(time, 1, self.colors[1].rgb), (0, 20))
             if self.mode == Sokoban.CopyCatMode:
-                self.gameDisplay.blit(self.fonts[2].render("name: %s" % (self.copycatName) , 1, self.colors[1].rgb), (0, windowSize[1] - 20))
+                self.gameDisplay.blit(self.fonts[2].render("name: %s" % (self.copycatName) , 1, self.colors[1].rgb), (10, windowSize[1] - 20))
             else:
                 self.gameDisplay.blit(self.menuImage, (10, windowSize[1] - 40))
             if len(self.path) > 0:
@@ -233,7 +241,8 @@ class Sokoban():
                 for index, option in enumerate(self.confirm["options"]):
                     text = ("● " if index == self.confirm["select"] else "○ ") + option["text"]
                     text_width = self.fonts[2].size(text + "  ")[0]
-                    self.gameDisplay.blit(self.fonts[2].render(text, 1, Color.white), (x, y))
+                    text_color = Color.blue if index == self.confirm["select"] else Color.white
+                    self.gameDisplay.blit(self.fonts[2].render(text, 1, text_color), (x, y))
                     if self.confirm["direction"] == "vertical":
                         y += lineHeight
                     elif self.confirm["direction"] == "horizonal":
@@ -280,27 +289,35 @@ class Sokoban():
                         self.sendConfirm()
                     elif event.key == pygame.K_ESCAPE:
                         self.confirm["show"] = False
-                    elif event.key == pygame.K_LEFT:
-                        self.confirm["select"] = (self.confirm["select"] - 1 + len(self.confirm["options"])) % len(self.confirm["options"])
-                    elif event.key == pygame.K_RIGHT:
-                        self.confirm["select"] = (self.confirm["select"] + 1) % len(self.confirm["options"])
-                mouse_position = pygame.mouse.get_pos()
-                if pygame.rect.Rect(self.confirm["rect"]).collidepoint(mouse_position):
-                    charWidth, lineHeight = self.fonts[2].size(" ")
-                    x, y = self.confirm["rect"][0] + 10, self.confirm["rect"][1] + 10 + lineHeight
-                    for index, option in enumerate(self.confirm["options"]):
-                        text = ("● " if index == self.confirm["select"] else "○ ") + option["text"]
-                        text_width = self.fonts[2].size(text)[0]
-                        if pygame.rect.Rect((x, y, text_width, lineHeight)).collidepoint(mouse_position):
-                            self.confirm["select"] = index
-                            if pygame.mouse.get_pressed()[0]:
-                                self.sendConfirm()
-                                break
-                        if self.confirm["direction"] == "vertical":
-                            y += lineHeight
-                        elif self.confirm["direction"] == "horizonal":
-                            x += text_width + charWidth * 2
-
+                    elif self.confirm["direction"] == "vertical":
+                        if event.key == pygame.K_UP:
+                            self.confirm["select"] = (self.confirm["select"] - 1 + len(self.confirm["options"])) % len(self.confirm["options"])
+                        elif event.key == pygame.K_DOWN:
+                            self.confirm["select"] = (self.confirm["select"] + 1) % len(self.confirm["options"])
+                    elif self.confirm["direction"] == "horizonal":
+                        if event.key == pygame.K_LEFT:
+                            self.confirm["select"] = (self.confirm["select"] - 1 + len(self.confirm["options"])) % len(self.confirm["options"])
+                        elif event.key == pygame.K_RIGHT:
+                            self.confirm["select"] = (self.confirm["select"] + 1) % len(self.confirm["options"])
+                elif event.type in set([pygame.MOUSEMOTION, pygame.MOUSEBUTTONDOWN]):
+                    mouse_position = pygame.mouse.get_pos()
+                    if pygame.rect.Rect(self.confirm["rect"]).collidepoint(mouse_position):
+                        charWidth, lineHeight = self.fonts[2].size(" ")
+                        x, y = self.confirm["rect"][0] + 10, self.confirm["rect"][1] + 10 + lineHeight
+                        for index, option in enumerate(self.confirm["options"]):
+                            text = ("● " if index == self.confirm["select"] else "○ ") + option["text"]
+                            text_width = self.fonts[2].size(text)[0]
+                            if pygame.rect.Rect((x, y, text_width, lineHeight)).collidepoint(mouse_position):
+                                self.confirm["select"] = index
+                                if pygame.mouse.get_pressed()[0]:
+                                    self.sendConfirm()
+                                    break
+                            if self.confirm["direction"] == "vertical":
+                                y += lineHeight
+                            elif self.confirm["direction"] == "horizonal":
+                                x += text_width + charWidth * 2
+                    elif pygame.mouse.get_pressed()[0]:
+                        self.confirm["show"] = False
             elif self.mode == Sokoban.InitMode:
                 if event.type == pygame.KEYDOWN:
                     # if event.key == pygame.K_LEFT:
@@ -399,6 +416,10 @@ class Sokoban():
                                     {
                                         "text": "榮譽榜",
                                         "callback" : self.toRecordMode
+                                    },
+                                    {
+                                        "text": "音樂: " + ("開" if self.musicPlaying else "關"),
+                                        "callback" : self.musicOnOff
                                     }
                                 ],
                                 "select" : 0,
@@ -441,7 +462,8 @@ class Sokoban():
                         self.previous()
                     elif event.key == pygame.K_F4:
                         self.toRecordMode()
-                    # elif event.key == pygame.K_F5:
+                    elif event.key == pygame.K_F5:
+                        self.musicOnOff()
                     #     self.level += 1
                     #     self.loadStage()
                     if event.key in range(48, 58): # 0~9
