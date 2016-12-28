@@ -122,9 +122,31 @@ class Sokoban():
             for x, Cell in enumerate(Raw):
                 if Cell in range(5, 7):
                     self.position = (x, y)
+        self.calcDistance()
         self.startTime = pygame.time.get_ticks() # 初始化開始時間
     def loadTheme(self): # 載入主題背景圖
         self.image = pygame.image.load("images/" + str(self.theme) + ".png")
+    def calcDistance(self):
+        cellCount = self.size[0] * self.size[1]
+        self.distance = [[cellCount if cell in range(2) else -1 for cell in row] for row in self.stage]
+        self.distance[self.position[1]][self.position[0]] = 0
+        for i in range(1, cellCount):
+            if True in [i - 1 in row for row in self.distance]:
+                for y2, row in enumerate(self.distance):
+                    for x2, cell in enumerate(row):
+                        if cell == i - 1:
+                            for offset in Sokoban.AroundOffset:
+                                if y2 + offset[1] in range(self.size[1]):
+                                    if x2 + offset[0] in range(self.size[0]):
+                                        if self.distance[y2 + offset[1]][x2 + offset[0]] > i:
+                                            self.distance[y2 + offset[1]][x2 + offset[0]] = i
+            else:
+                break
+
+        for y2, row in enumerate(self.distance):
+            for x2, cell in enumerate(row):
+                if cell == cellCount:
+                    self.distance[y2][x2] = -1
     def previous(self): # 上一步
         if len(self.steps) > 0:
             if self.mode == Sokoban.PlayingMode:
@@ -136,6 +158,7 @@ class Sokoban():
             self.stage[self.position[1]][self.position[0]] += 5
             for x, y, offset in step["change"]:
                 self.stage[self.position[1] + y][self.position[0] + x] -= offset
+            self.calcDistance()
     def next(self, ticks): # 下一步(CopyCatMode)
         if len(self.steps) < len(self.lurd):
             self.copycatTimer = ticks
@@ -219,13 +242,14 @@ class Sokoban():
             self.gameDisplay.blit(self.fonts[3].render(level + " " + best, 1, self.colors[1].rgb), (0, 0))
             self.gameDisplay.blit(self.fonts[3].render(step, 1, self.colors[1].rgb), (0, 10))
             self.gameDisplay.blit(self.fonts[3].render(time, 1, self.colors[1].rgb), (0, 20))
-            if self.mode == Sokoban.CopyCatMode:
-                self.gameDisplay.blit(self.fonts[2].render("name: %s" % (self.copycatName) , 1, self.colors[1].rgb), (10, windowSize[1] - 20))
-            else:
-                self.gameDisplay.blit(self.menuImage, (10, windowSize[1] - 40))
             if len(self.path) > 0:
+                mouse_position = pygame.mouse.get_pos()
                 x, y = self.position
-                pathColor = Color.blue if self.stage[y + self.path[0][1]][x + self.path[0][0]] in range(2) else Color.green
+                x2, y2 = self.position
+                for offset in self.path:
+                    x2 += offset[0]
+                    y2 += offset[1]
+                pathColor = Color.blue if self.stage[y2][x2] in range(2) else Color.green
                 for step, offset in enumerate(self.path):
                     pygame.draw.circle(self.gameDisplay, pathColor, ((x + offset[0]) * 30 + 15 - 10 * offset[0], (y + offset[1]) * 30 + 15 - 10 * offset[1]), 3, 0)
                     pygame.draw.circle(self.gameDisplay, pathColor, ((x + offset[0]) * 30 + 15, (y + offset[1]) * 30 + 15), 5 if len(self.path) - 1 == step else 4, 0)
@@ -233,6 +257,10 @@ class Sokoban():
                         pygame.draw.circle(self.gameDisplay, pathColor, ((x + offset[0]) * 30 + 15 + 10 * self.path[step + 1][0], (y + offset[1]) * 30 + 15 + 10 * self.path[step + 1][1]), 3, 0)
                     x += offset[0]
                     y += offset[1]
+            if self.mode == Sokoban.CopyCatMode:
+                self.gameDisplay.blit(self.fonts[2].render("name: %s" % (self.copycatName) , 1, self.colors[1].rgb), (10, windowSize[1] - 20))
+            else:
+                self.gameDisplay.blit(self.menuImage, (10, windowSize[1] - 40))
         def drawRecode():
             windowSize = pygame.display.get_surface().get_size()
             if windowSize != (380, 420):
@@ -440,55 +468,47 @@ class Sokoban():
                 if len(self.steps) == 0:
                     self.confirm["options"][0:1] = []
                 self.confirmResize()
-            x, y = mouse_position[0] // 30, mouse_position[1] // 30
-            if y in range(self.size[1]):
-                if x in range(self.size[0]):
-                    if self.stage[y][x] in range(2):
-                        cellCount = self.size[0] * self.size[1]
-                        distance = [[cellCount if cell in range(2) else -1 for cell in row] for row in self.stage]
-                        distance[self.position[1]][self.position[0]] = 0
-                        for i in range(1, cellCount):
-                            if True in [i - 1 in row for row in distance]:
-                                for y2, row in enumerate(distance):
-                                    for x2, cell in enumerate(row):
-                                        if cell == i - 1:
-                                            for offset in Sokoban.AroundOffset:
-                                                if y2 + offset[1] in range(self.size[1]):
-                                                    if x2 + offset[0] in range(self.size[0]):
-                                                        if distance[y2 + offset[1]][x2 + offset[0]] > i:
-                                                            distance[y2 + offset[1]][x2 + offset[0]] = i
+            def pathHandler(x, y):
+                if y in range(self.size[1]) and x in range(self.size[0]):
+                    offsetX, offsetY = 0, 0
+                    self.path = []
+                    # print((x, y))
+                    if self.stage[y][x] in range(3, 5):
+                        if pow(x - self.position[0], 2) + pow(y - self.position[1], 2) > 1:
+                            diff = mouse_position[0] - x * 30 - 15, mouse_position[1] - y * 30 - 15
+                            offsetX = diff[0] // abs(diff[0]) if abs(diff[0]) > abs(diff[1]) else 0
+                            offsetY = 0 if abs(diff[0]) > abs(diff[1]) else diff[1] // abs(diff[1])
+                            if self.distance[y + offsetY][x + offsetX] > 0:
+                                self.path = [(-offsetX, -offsetY)]
+                                # print((x, y), (x + offsetX, y + offsetY))
                             else:
-                                break
-
-                        for y2, row in enumerate(distance):
-                            for x2, cell in enumerate(row):
-                                if cell == cellCount:
-                                    distance[y2][x2] = -1
-                        if distance[y][x] > 0:
-                            self.path = []
-                            # print("兩點距離%d步" % (distance[y][x]))
-                            for i in range(distance[y][x], 0, -1):
-                                for offset in Sokoban.AroundOffset:
-                                    if y + offset[1] in range(self.size[1]):
-                                        if x + offset[0] in range(self.size[0]):
-                                            if distance[y + offset[1]][x + offset[0]] == i - 1:
-                                                self.path = [(-offset[0], -offset[1])] + self.path
-                                                x = x + offset[0]
-                                                y = y + offset[1]
-                                                break
+                                offsetX, offsetY = 0, 0
                         else:
-                            self.path = []
-                    elif self.stage[y][x] in range(3, 5):
-                        if pow(x - self.position[0], 2) + pow(y - self.position[1], 2) == 1:
                             self.path = [(x - self.position[0], y - self.position[1])]
-                        else:
-                            self.path = []
-                    else:
-                        self.path = []
+                    if self.stage[y + offsetY][x + offsetX] in range(2):
+                        if self.distance[y + offsetY][x + offsetX] > 0:
+                            # self.path = []
+                            # print("兩點距離%d步" % (self.distance[y + offsetY][x + offsetX]))
+                            for i in range(self.distance[y + offsetY][x + offsetX], 0, -1):
+                                for offsetX2, offsetY2 in Sokoban.AroundOffset:
+                                    if y + offsetY + offsetY2 in range(self.size[1]) and x + offsetX + offsetX2 in range(self.size[0]):
+                                        if self.distance[y + offsetY + offsetY2][x + offsetX + offsetX2] == i - 1:
+                                            self.path = [(-offsetX2, -offsetY2)] + self.path
+                                            x = x + offsetX2
+                                            y = y + offsetY2
+                                            break
                     if pygame.mouse.get_pressed()[0]:
+                        # directionIcons = {
+                        #     (0, -1) : "↑",
+                        #     (0, 1) : "↓",
+                        #     (-1, 0) : "←",
+                        #     (1, 0) : "→"
+                        # }
+                        # print([directionIcons[way] for way in self.path])
                         for xOffset, yOffset in self.path:
                             self.move(xOffset, yOffset)
                         self.path = []
+            pathHandler(mouse_position[0] // 30, mouse_position[1] // 30)
             if pygame.mouse.get_pressed()[0]:
                 windowSize = pygame.display.get_surface().get_size()
                 if mouse_position[0] in range(10, 43):
@@ -611,7 +631,7 @@ class Sokoban():
         if self.position[1] + y in range(len(self.stage)):
             if self.position[0] + x in range(len(self.stage[0])):
                 if self.stage[self.position[1] + y][self.position[0] + x] in range(0, 2):
-                    print("向(%d, %d)移動" % (x, y))
+                    # print("向(%d, %d)移動" % (x, y))
                     if self.mode == Sokoban.PlayingMode:
                         self.lurd += ["u", "d", "l", "r"][Sokoban.AroundOffset.index((x, y))]
                     self.steps.append(
@@ -627,7 +647,7 @@ class Sokoban():
                     if self.position[1] + 2 * y in range(len(self.stage)):
                         if self.position[0] + 2 * x in range(len(self.stage[0])):
                             if self.stage[self.position[1] + 2 * y][self.position[0] + 2 * x] in range(0, 2):
-                                print("向(%d, %d)推動" % (x, y))
+                                # print("向(%d, %d)推動" % (x, y))
                                 if self.mode == Sokoban.PlayingMode:
                                     self.lurd += ["U", "D", "L", "R"][Sokoban.AroundOffset.index((x, y))]
                                 self.steps.append(
@@ -640,22 +660,23 @@ class Sokoban():
                                 self.stage[self.position[1] + y][self.position[0] + x] += 2
                                 self.stage[self.position[1] + 2 * y][self.position[0] + 2 * x] += 3
                                 self.position = (self.position[0] + x, self.position[1] + y)
-        if not True in [3 in y for y in self.stage]: # win!!
-            if self.mode == Sokoban.PlayingMode:
-                self.breakOff = True
-                for rank, recode in enumerate(self.recode[self.level]):
-                    if type(recode["move"]) is int:
-                        if recode["move"] > len(self.steps):
-                            self.rank = rank
-                            self.addRecode()
-                            break
+                self.calcDistance()
+                if not True in [3 in y for y in self.stage]: # win!!
+                    if self.mode == Sokoban.PlayingMode:
+                        self.breakOff = True
+                        for rank, recode in enumerate(self.recode[self.level]):
+                            if type(recode["move"]) is int:
+                                if recode["move"] > len(self.steps):
+                                    self.rank = rank
+                                    self.addRecode()
+                                    break
+                            else:
+                                self.rank = rank
+                                self.addRecode()
+                                break
                     else:
-                        self.rank = rank
-                        self.addRecode()
-                        break
-            else:
-                self.loadStage()
-            self.toRecordMode()
+                        self.loadStage()
+                    self.toRecordMode()
     def quit(self):
         self.running = False
         pygame.quit()
