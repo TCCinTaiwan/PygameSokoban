@@ -85,7 +85,7 @@ class Sokoban():
             self.handler()
             self.draw()
         self.quit()
-    def addRecode(self):
+    def addRecode(self): # 增加高分紀錄，並存檔
         for rank in range(len(self.recode[self.level]) - 1, self.rank, -1):
             self.recode[self.level][rank] = self.recode[self.level][rank - 1]
         self.recode[self.level][self.rank] = {
@@ -95,10 +95,10 @@ class Sokoban():
         }
         with open('data.json', 'w') as output_file:
             json.dump(self.recode, output_file, sort_keys = True, indent = 4, ensure_ascii = False)
-    def loadRecode(self):
+    def loadRecode(self): # 載入高分紀錄
         with open('data.json') as json_data:
             self.recode = json.load(json_data)
-    def loadStage(self):
+    def loadStage(self): # 載入關卡資料
         with open('sokoban.json') as json_data:
             stage_data = json.load(json_data)
             if len(stage_data) <= self.level:
@@ -110,6 +110,7 @@ class Sokoban():
             self.size = stage_data["size"]
             self.display_width = self.size[0] * 30
             self.display_height = self.size[1] * 30
+        pygame.display.set_caption('倉庫番 第%d關' % (self.level + 1))
         self.steps = []
         self.rank = None
         self.breakOff = False
@@ -119,10 +120,10 @@ class Sokoban():
             for x, Cell in enumerate(Raw):
                 if Cell in range(5, 7):
                     self.position = (x, y)
-        self.startTime = pygame.time.get_ticks()
-    def loadTheme(self):
+        self.startTime = pygame.time.get_ticks() # 初始化開始時間
+    def loadTheme(self): # 載入主題背景圖
         self.image = pygame.image.load("images/" + str(self.theme) + ".png")
-    def previous(self):
+    def previous(self): # 上一步
         if len(self.steps) > 0:
             if self.mode == Sokoban.PlayingMode:
                 self.lurd = self.lurd[:-1]
@@ -133,33 +134,32 @@ class Sokoban():
             self.stage[self.position[1]][self.position[0]] += 5
             for x, y, offset in step["change"]:
                 self.stage[self.position[1] + y][self.position[0] + x] -= offset
-    def next(self, ticks): # CopyCatMode
+    def next(self, ticks): # 下一步(CopyCatMode)
         if len(self.steps) < len(self.lurd):
             self.copycatTimer = ticks
             x, y = Sokoban.AroundOffset[["u", "d", "l", "r"].index(self.lurd[len(self.steps)].lower())]
             self.move(x, y)
-    def toRecordMode(self):
+    def toRecordMode(self): # 開啟榮譽榜
         self.mode = Sokoban.RecodeMode
-    def sendConfirm(self):
+    def sendConfirm(self): # 送出小視窗
         if not self.confirm["options"][self.confirm["select"]]["callback"] is None:
             self.confirm["options"][self.confirm["select"]]["callback"]()
         self.confirm["show"] = False
-    def newConfirm(self):
+    def confirmResize(self): # 計算小視窗大小位置
         windowSize = pygame.display.get_surface().get_size()
         lineHeight = self.fonts[2].size(" ")[1]
         height = 40 + lineHeight * (len(self.confirm["options"]) if self.confirm["direction"] == "vertical" else 1)
         width = windowSize[0] - 20
         top = (windowSize[1] - height) // 2
         self.confirm["rect"] = (10, top , width, height)
-    def musicOnOff(self):
+    def musicOnOff(self): # 切換音樂開關
         if self.musicPlaying:
             pygame.mixer.music.pause()
         else:
             pygame.mixer.music.unpause()
         self.musicPlaying = not self.musicPlaying
-    def draw(self):
-        ticks = pygame.time.get_ticks()
-        if self.mode == Sokoban.InitMode:
+    def draw(self): # 繪圖
+        def drawInitMode():
             if pygame.display.get_surface().get_size() != (420, 400):
                 self.gameDisplay = pygame.display.set_mode((420, 400))
             self.gameDisplay.fill(self.colors[0].rgb)
@@ -182,8 +182,7 @@ class Sokoban():
             # self.gameDisplay.blit(self.fonts[2].render("主題：《 %d 》" % (self.theme) , 1, self.colors[1].rgb), (10, 280))
             if ticks % self.blinkCycleTime[1] > self.blinkCycleTime[0]:
                 self.gameDisplay.blit(self.fonts[2].render("歡迎來到倉庫番的世界!!" , 1, self.colors[1].rgb), (120, 380))
-
-        elif self.mode in [Sokoban.PlayingMode, Sokoban.CopyCatMode]:
+        def drawStage():
             if ticks - self.copycatTimer > self.copycatCycleTime:
                 self.next(ticks)
             windowSize = pygame.display.get_surface().get_size()
@@ -232,23 +231,7 @@ class Sokoban():
                         pygame.draw.circle(self.gameDisplay, pathColor, ((x + offset[0]) * 30 + 15 + 10 * self.path[step + 1][0], (y + offset[1]) * 30 + 15 + 10 * self.path[step + 1][1]), 3, 0)
                     x += offset[0]
                     y += offset[1]
-            if self.confirm["show"]:
-                lineHeight = self.fonts[2].size(" ")[1]
-                pygame.draw.rect(self.gameDisplay, Color.black, self.confirm["rect"])
-                x , y = self.confirm["rect"][0] + 10, self.confirm["rect"][1] + 10
-                self.gameDisplay.blit(self.fonts[2].render(self.confirm["message"], 1, Color.white), (x, y)) # 標題
-                y += lineHeight
-                for index, option in enumerate(self.confirm["options"]):
-                    text = ("● " if index == self.confirm["select"] else "○ ") + option["text"]
-                    text_width = self.fonts[2].size(text + "  ")[0]
-                    text_color = Color.blue if index == self.confirm["select"] else Color.white
-                    self.gameDisplay.blit(self.fonts[2].render(text, 1, text_color), (x, y))
-                    if self.confirm["direction"] == "vertical":
-                        y += lineHeight
-                    elif self.confirm["direction"] == "horizonal":
-                        x += text_width
-
-        elif self.mode == Sokoban.RecodeMode:
+        def drawRecode():
             windowSize = pygame.display.get_surface().get_size()
             if windowSize != (380, 420):
                 self.gameDisplay = pygame.display.set_mode((380, 420))
@@ -268,255 +251,317 @@ class Sokoban():
                 self.fonts[1].set_underline(False)
             if ticks % self.blinkCycleTime[1] > self.blinkCycleTime[0]:
                 self.gameDisplay.blit(self.fonts[2].render("按Enter%s..." % ("進入下一關" if self.breakOff else "開始挑戰"), 1, self.colors[1].rgb), (190 - 80, 400))
-        elif self.mode == Sokoban.DevelopMode:
+        def drawDevelop():
             if pygame.display.get_surface().get_size() != (380, 420):
                 self.gameDisplay = pygame.display.set_mode((380, 420))
             self.gameDisplay.fill(Color.white)
+        def drawConfirm():
+            lineHeight = self.fonts[2].size(" ")[1]
+            pygame.draw.rect(self.gameDisplay, Color.black, self.confirm["rect"])
+            x , y = self.confirm["rect"][0] + 10, self.confirm["rect"][1] + 10
+            self.gameDisplay.blit(self.fonts[2].render(self.confirm["message"], 1, Color.white), (x, y)) # 標題
+            y += lineHeight
+            for index, option in enumerate(self.confirm["options"]):
+                text = ("● " if index == self.confirm["select"] else "○ ") + option["text"]
+                text_width = self.fonts[2].size(text + "  ")[0]
+                text_color = Color.blue if index == self.confirm["select"] else Color.white
+                self.gameDisplay.blit(self.fonts[2].render(text, 1, text_color), (x, y))
+                if self.confirm["direction"] == "vertical":
+                    y += lineHeight
+                elif self.confirm["direction"] == "horizonal":
+                    x += text_width
+        ticks = pygame.time.get_ticks()
+
+        if self.mode == Sokoban.InitMode:
+            drawInitMode()
+        elif self.mode in [Sokoban.PlayingMode, Sokoban.CopyCatMode]:
+            drawStage()
+        elif self.mode == Sokoban.RecodeMode:
+            drawRecode()
+        elif self.mode == Sokoban.DevelopMode:
+            drawDevelop()
+
+        if self.confirm["show"]:
+            drawConfirm()
+
         fps = "fps: %d" % (self.clock.get_fps())
         self.gameDisplay.blit(self.fonts[3].render(fps, 1, self.colors[1].rgb), (pygame.display.get_surface().get_size()[0] - len(fps) * 7, 0))
-        pygame.display.set_caption('倉庫番 第%d關' % (self.level + 1))
         pygame.display.update()
         self.clock.tick(10)
     def handler(self):
+        def quit():
+            self.confirm = {
+                "message" : "是否結束遊戲？",
+                "options" : [
+                    {
+                        "text": "是",
+                        "callback" : self.quit
+                    },
+                    {
+                        "text": "否",
+                        "callback" : None
+                    }
+                ],
+                "select" : 0,
+                "show" : True,
+                "direction" : "horizonal"
+            }
+            self.confirmResize()
+        def confirmHandler():
+            if event.type == pygame.KEYDOWN:
+                if event.key in [pygame.K_RETURN, pygame.K_KP_ENTER]:
+                    self.sendConfirm()
+                elif event.key == pygame.K_ESCAPE:
+                    self.confirm["show"] = False
+                elif self.confirm["direction"] == "vertical":
+                    if event.key == pygame.K_UP:
+                        self.confirm["select"] = (self.confirm["select"] - 1 + len(self.confirm["options"])) % len(self.confirm["options"])
+                    elif event.key == pygame.K_DOWN:
+                        self.confirm["select"] = (self.confirm["select"] + 1) % len(self.confirm["options"])
+                elif self.confirm["direction"] == "horizonal":
+                    if event.key == pygame.K_LEFT:
+                        self.confirm["select"] = (self.confirm["select"] - 1 + len(self.confirm["options"])) % len(self.confirm["options"])
+                    elif event.key == pygame.K_RIGHT:
+                        self.confirm["select"] = (self.confirm["select"] + 1) % len(self.confirm["options"])
+            elif event.type in set([pygame.MOUSEMOTION, pygame.MOUSEBUTTONDOWN]):
+                mouse_position = pygame.mouse.get_pos()
+                if pygame.rect.Rect(self.confirm["rect"]).collidepoint(mouse_position):
+                    charWidth, lineHeight = self.fonts[2].size(" ")
+                    x, y = self.confirm["rect"][0] + 10, self.confirm["rect"][1] + 10 + lineHeight
+                    for index, option in enumerate(self.confirm["options"]):
+                        text = ("● " if index == self.confirm["select"] else "○ ") + option["text"]
+                        text_width = self.fonts[2].size(text)[0]
+                        if pygame.rect.Rect((x, y, text_width, lineHeight)).collidepoint(mouse_position):
+                            self.confirm["select"] = index
+                            if pygame.mouse.get_pressed()[0]:
+                                self.sendConfirm()
+                                break
+                        if self.confirm["direction"] == "vertical":
+                            y += lineHeight
+                        elif self.confirm["direction"] == "horizonal":
+                            x += text_width + charWidth * 2
+                elif pygame.mouse.get_pressed()[0]:
+                    self.confirm["show"] = False
+        def initHandler():
+            if event.type == pygame.KEYDOWN:
+                # if event.key == pygame.K_LEFT:
+                #     self.theme = self.theme - 1
+                #     self.loadTheme()
+                # elif event.key == pygame.K_RIGHT:
+                #     self.theme = self.theme + 1
+                #     self.loadTheme()
+                # elif event.key == pygame.K_BACKSPACE:
+                if event.key == pygame.K_BACKSPACE:
+                    self.username = self.username[:-1]
+                elif event.key == pygame.K_ESCAPE:
+                    self.username = ""
+                elif (event.key in [pygame.K_RETURN, pygame.K_KP_ENTER]) and self.username != "":
+                    self.mode = Sokoban.PlayingMode
+                else:
+                    if len(self.username) <= 20:
+                        if event.key in range(48, 58): # 0~9
+                            self.username += chr(event.key)
+                        elif event.key == ord(" ") and len(self.username) > 0:
+                            self.username += chr(event.key)
+                        elif event.key in range(ord('a'), ord('z') + 1) or event.key in range(ord('A'), ord('Z') + 1): # a~z A~Z
+                            if pygame.key.get_mods() & pygame.KMOD_CAPS:
+                                self.username += chr(event.key - ord('a') + ord('A'))
+                            else:
+                                self.username += chr(event.key)
+                        elif event.key in range(256, 266): # 0~9
+                            self.username += chr(event.key - 208)
+                        # else:
+                        #     print(event.key)
+        def playingHandler():
+            x, y = mouse_position[0] // 30, mouse_position[1] // 30
+            if y in range(self.size[1]):
+                if x in range(self.size[0]):
+                    if self.stage[y][x] in range(2):
+                        cellCount = self.size[0] * self.size[1]
+                        distance = [[cellCount if cell in range(2) else -1 for cell in row] for row in self.stage]
+                        distance[self.position[1]][self.position[0]] = 0
+                        for i in range(1, cellCount):
+                            if True in [i - 1 in row for row in distance]:
+                                for y2, row in enumerate(distance):
+                                    for x2, cell in enumerate(row):
+                                        if cell == i - 1:
+                                            for offset in Sokoban.AroundOffset:
+                                                if y2 + offset[1] in range(self.size[1]):
+                                                    if x2 + offset[0] in range(self.size[0]):
+                                                        if distance[y2 + offset[1]][x2 + offset[0]] > i:
+                                                            distance[y2 + offset[1]][x2 + offset[0]] = i
+                            else:
+                                break
+
+                        for y2, row in enumerate(distance):
+                            for x2, cell in enumerate(row):
+                                if cell == cellCount:
+                                    distance[y2][x2] = -1
+                        if distance[y][x] > 0:
+                            self.path = []
+                            # print("兩點距離%d步" % (distance[y][x]))
+                            for i in range(distance[y][x], 0, -1):
+                                for offset in Sokoban.AroundOffset:
+                                    if y + offset[1] in range(self.size[1]):
+                                        if x + offset[0] in range(self.size[0]):
+                                            if distance[y + offset[1]][x + offset[0]] == i - 1:
+                                                self.path = [(-offset[0], -offset[1])] + self.path
+                                                x = x + offset[0]
+                                                y = y + offset[1]
+                                                break
+                        else:
+                            self.path = []
+                    elif self.stage[y][x] in range(3, 5):
+                        if pow(x - self.position[0], 2) + pow(y - self.position[1], 2) == 1:
+                            self.path = [(x - self.position[0], y - self.position[1])]
+                        else:
+                            self.path = []
+                    else:
+                        self.path = []
+                    if pygame.mouse.get_pressed()[0]:
+                        for xOffset, yOffset in self.path:
+                            self.move(xOffset, yOffset)
+                        self.path = []
+            if pygame.mouse.get_pressed()[0]:
+                windowSize = pygame.display.get_surface().get_size()
+                if mouse_position[0] in range(10, 43):
+                    if mouse_position[1] in range(windowSize[1] - 40, windowSize[1] - 8):
+                        self.confirm = {
+                            "message" : "選單",
+                            "options" : [
+                                {
+                                    "text": "重新開始",
+                                    "callback" : self.loadStage
+                                },
+                                {
+                                    "text": "上一步",
+                                    "callback" : self.previous
+                                },
+                                {
+                                    "text": "榮譽榜",
+                                    "callback" : self.toRecordMode
+                                },
+                                {
+                                    "text": "音樂: " + ("開" if self.musicPlaying else "關"),
+                                    "callback" : self.musicOnOff
+                                }
+                            ],
+                            "select" : 0,
+                            "show" : True,
+                            "direction" : "vertical"
+                        }
+                        self.confirmResize()
+            if event.type == pygame.KEYDOWN:
+                if event.key in [pygame.K_LEFT, pygame.K_a]:
+                    self.path = []
+                    self.move(-1, 0)
+                elif event.key in [pygame.K_RIGHT, pygame.K_d]:
+                    self.path = []
+                    self.move(1, 0)
+                elif event.key in [pygame.K_UP, pygame.K_w]:
+                    self.path = []
+                    self.move(0, -1)
+                elif event.key in [pygame.K_DOWN, pygame.K_s]:
+                    self.path = []
+                    self.move(0, 1)
+                elif event.key == pygame.K_F2 and len(self.steps) > 0:
+                    self.confirm = {
+                        "message" : "是否重新開始？",
+                        "options" : [
+                            {
+                                "text": "是",
+                                "callback" : self.loadStage
+                            },
+                            {
+                                "text": "否",
+                                "callback" : None
+                            }
+                        ],
+                        "select" : 0,
+                        "show" : True,
+                        "direction" : "horizonal"
+                    }
+                    self.confirmResize()
+                elif event.key == pygame.K_F3 or event.key == pygame.K_z and bool(event.mod & pygame.KMOD_CTRL):
+                    self.previous()
+                elif event.key == pygame.K_F4:
+                    self.toRecordMode()
+                elif event.key == pygame.K_F5:
+                    self.musicOnOff()
+                #     self.level += 1
+                #     self.loadStage()
+                if event.key in range(48, 58): # 0~9
+                    self.password += chr(event.key)
+                elif event.key == ord(" "):
+                    self.password += chr(event.key)
+                elif event.key in range(ord('a'), ord('z') + 1) or event.key in range(ord('A'), ord('Z') + 1): # A~Za~z
+                    self.password += chr(event.key)
+                elif event.key in range(256, 266): # 0~9
+                    self.password += chr(event.key - 208)
+                if self.developPassword in self.password:
+                    self.mode = Sokoban.DevelopMode
+                    self.password = ""
+        def recodeHandler():
+            if pygame.mouse.get_pressed()[0]:
+                row = (mouse_position[1] - 60) // 30
+                if row in range(len(self.recode[self.level])):
+                    recode = self.recode[self.level][row]
+                    if type(recode["move"]) is int:
+                        self.loadStage()
+                        self.mode = Sokoban.CopyCatMode
+                        self.lurd = recode["lurd"]
+                        self.copycatName = recode["name"]
+                        self.copycatTimer = pygame.time.get_ticks()
+                else:
+                    if self.breakOff:
+                        self.level += 1
+                        self.loadStage()
+                    self.mode = Sokoban.PlayingMode
+            if event.type == pygame.KEYDOWN:
+                if event.key in [pygame.K_RETURN, pygame.K_KP_ENTER]:
+                    if self.breakOff:
+                        self.level += 1
+                        self.loadStage()
+                    self.mode = Sokoban.PlayingMode
+                elif event.key == pygame.K_F2:
+                    self.loadStage()
+                    self.mode = Sokoban.PlayingMode
+        def copyCatHandler():
+            if event.type == pygame.KEYDOWN:
+                if event.key in [pygame.K_LEFT, pygame.K_a]:
+                    self.previous()
+                elif event.key in [pygame.K_RIGHT, pygame.K_d]:
+                    self.next(pygame.time.get_ticks())
+        def developHandler():
+            if event.type == pygame.KEYDOWN:
+                if event.key in range(48, 58): # 0~9
+                    self.password += chr(event.key)
+                elif event.key in range(256, 266): # 0~9
+                    self.password += chr(event.key - 208)
+                elif event.key == ord(" "):
+                    self.password += chr(event.key)
+                elif event.key in range(ord('a'), ord('z') + 1) or event.key in range(ord('A'), ord('Z') + 1): # A~Za~z
+                    self.password += chr(event.key)
+                if self.developPassword in self.password:
+                    self.mode = Sokoban.PlayingMode
+                    self.password = ""
         events = pygame.event.get()
         mouse_position = pygame.mouse.get_pos()
         for event in events:
             if event.type == pygame.KEYDOWN and event.key == pygame.K_F4 and bool(event.mod & pygame.KMOD_ALT) or event.type == pygame.QUIT:
-                self.running = False
+                quit()
             elif self.confirm["show"]:
-                if event.type == pygame.KEYDOWN:
-                    if event.key in [pygame.K_RETURN, pygame.K_KP_ENTER]:
-                        self.sendConfirm()
-                    elif event.key == pygame.K_ESCAPE:
-                        self.confirm["show"] = False
-                    elif self.confirm["direction"] == "vertical":
-                        if event.key == pygame.K_UP:
-                            self.confirm["select"] = (self.confirm["select"] - 1 + len(self.confirm["options"])) % len(self.confirm["options"])
-                        elif event.key == pygame.K_DOWN:
-                            self.confirm["select"] = (self.confirm["select"] + 1) % len(self.confirm["options"])
-                    elif self.confirm["direction"] == "horizonal":
-                        if event.key == pygame.K_LEFT:
-                            self.confirm["select"] = (self.confirm["select"] - 1 + len(self.confirm["options"])) % len(self.confirm["options"])
-                        elif event.key == pygame.K_RIGHT:
-                            self.confirm["select"] = (self.confirm["select"] + 1) % len(self.confirm["options"])
-                elif event.type in set([pygame.MOUSEMOTION, pygame.MOUSEBUTTONDOWN]):
-                    mouse_position = pygame.mouse.get_pos()
-                    if pygame.rect.Rect(self.confirm["rect"]).collidepoint(mouse_position):
-                        charWidth, lineHeight = self.fonts[2].size(" ")
-                        x, y = self.confirm["rect"][0] + 10, self.confirm["rect"][1] + 10 + lineHeight
-                        for index, option in enumerate(self.confirm["options"]):
-                            text = ("● " if index == self.confirm["select"] else "○ ") + option["text"]
-                            text_width = self.fonts[2].size(text)[0]
-                            if pygame.rect.Rect((x, y, text_width, lineHeight)).collidepoint(mouse_position):
-                                self.confirm["select"] = index
-                                if pygame.mouse.get_pressed()[0]:
-                                    self.sendConfirm()
-                                    break
-                            if self.confirm["direction"] == "vertical":
-                                y += lineHeight
-                            elif self.confirm["direction"] == "horizonal":
-                                x += text_width + charWidth * 2
-                    elif pygame.mouse.get_pressed()[0]:
-                        self.confirm["show"] = False
+                confirmHandler()
             elif self.mode == Sokoban.InitMode:
-                if event.type == pygame.KEYDOWN:
-                    # if event.key == pygame.K_LEFT:
-                    #     self.theme = self.theme - 1
-                    #     self.loadTheme()
-                    # elif event.key == pygame.K_RIGHT:
-                    #     self.theme = self.theme + 1
-                    #     self.loadTheme()
-                    # elif event.key == pygame.K_BACKSPACE:
-                    if event.key == pygame.K_BACKSPACE:
-                        self.username = self.username[:-1]
-                    elif event.key == pygame.K_ESCAPE:
-                        self.username = ""
-                    elif (event.key in [pygame.K_RETURN, pygame.K_KP_ENTER]) and self.username != "":
-                        self.mode = Sokoban.PlayingMode
-                    else:
-                        if len(self.username) <= 20:
-                            if event.key in range(48, 58): # 0~9
-                                self.username += chr(event.key)
-                            elif event.key == ord(" ") and len(self.username) > 0:
-                                self.username += chr(event.key)
-                            elif event.key in range(ord('a'), ord('z') + 1) or event.key in range(ord('A'), ord('Z') + 1): # a~z A~Z
-                                if pygame.key.get_mods() & pygame.KMOD_CAPS:
-                                    self.username += chr(event.key - ord('a') + ord('A'))
-                                else:
-                                    self.username += chr(event.key)
-                            elif event.key in range(256, 266): # 0~9
-                                self.username += chr(event.key - 208)
-                            # else:
-                            #     print(event.key)
+                initHandler()
             elif self.mode == Sokoban.PlayingMode:
-                x, y = mouse_position[0] // 30, mouse_position[1] // 30
-                if y in range(self.size[1]):
-                    if x in range(self.size[0]):
-                        if self.stage[y][x] in range(2):
-                            cellCount = self.size[0] * self.size[1]
-                            distance = [[cellCount if cell in range(2) else -1 for cell in row] for row in self.stage]
-                            distance[self.position[1]][self.position[0]] = 0
-                            for i in range(1, cellCount):
-                                if True in [i - 1 in row for row in distance]:
-                                    for y2, row in enumerate(distance):
-                                        for x2, cell in enumerate(row):
-                                            if cell == i - 1:
-                                                for offset in Sokoban.AroundOffset:
-                                                    if y2 + offset[1] in range(self.size[1]):
-                                                        if x2 + offset[0] in range(self.size[0]):
-                                                            if distance[y2 + offset[1]][x2 + offset[0]] > i:
-                                                                distance[y2 + offset[1]][x2 + offset[0]] = i
-                                else:
-                                    break
-
-                            for y2, row in enumerate(distance):
-                                for x2, cell in enumerate(row):
-                                    if cell == cellCount:
-                                        distance[y2][x2] = -1
-                            if distance[y][x] > 0:
-                                self.path = []
-                                # print("兩點距離%d步" % (distance[y][x]))
-                                for i in range(distance[y][x], 0, -1):
-                                    for offset in Sokoban.AroundOffset:
-                                        if y + offset[1] in range(self.size[1]):
-                                            if x + offset[0] in range(self.size[0]):
-                                                if distance[y + offset[1]][x + offset[0]] == i - 1:
-                                                    self.path = [(-offset[0], -offset[1])] + self.path
-                                                    x = x + offset[0]
-                                                    y = y + offset[1]
-                                                    break
-                            else:
-                                self.path = []
-                        elif self.stage[y][x] in range(3, 5):
-                            if pow(x - self.position[0], 2) + pow(y - self.position[1], 2) == 1:
-                                self.path = [(x - self.position[0], y - self.position[1])]
-                            else:
-                                self.path = []
-                        else:
-                            self.path = []
-                        if pygame.mouse.get_pressed()[0]:
-                            for xOffset, yOffset in self.path:
-                                self.move(xOffset, yOffset)
-                            self.path = []
-                if pygame.mouse.get_pressed()[0]:
-                    windowSize = pygame.display.get_surface().get_size()
-                    if mouse_position[0] in range(10, 43):
-                        if mouse_position[1] in range(windowSize[1] - 40, windowSize[1] - 8):
-                            self.confirm = {
-                                "message" : "選單",
-                                "options" : [
-                                    {
-                                        "text": "重新開始",
-                                        "callback" : self.loadStage
-                                    },
-                                    {
-                                        "text": "上一步",
-                                        "callback" : self.previous
-                                    },
-                                    {
-                                        "text": "榮譽榜",
-                                        "callback" : self.toRecordMode
-                                    },
-                                    {
-                                        "text": "音樂: " + ("開" if self.musicPlaying else "關"),
-                                        "callback" : self.musicOnOff
-                                    }
-                                ],
-                                "select" : 0,
-                                "show" : not self.confirm["show"],
-                                "direction" : "vertical"
-                            }
-                            self.newConfirm()
-                if event.type == pygame.KEYDOWN:
-                    if event.key in [pygame.K_LEFT, pygame.K_a]:
-                        self.path = []
-                        self.move(-1, 0)
-                    elif event.key in [pygame.K_RIGHT, pygame.K_d]:
-                        self.path = []
-                        self.move(1, 0)
-                    elif event.key in [pygame.K_UP, pygame.K_w]:
-                        self.path = []
-                        self.move(0, -1)
-                    elif event.key in [pygame.K_DOWN, pygame.K_s]:
-                        self.path = []
-                        self.move(0, 1)
-                    elif event.key == pygame.K_F2:
-                        self.confirm = {
-                            "message" : "是否重新開始？",
-                            "options" : [
-                                {
-                                    "text": "是",
-                                    "callback" : self.loadStage
-                                },
-                                {
-                                    "text": "否",
-                                    "callback" : None
-                                }
-                            ],
-                            "select" : 0,
-                            "show" : len(self.steps) > 0,
-                            "direction" : "horizonal"
-                        }
-                        self.newConfirm()
-                    elif event.key == pygame.K_F3:
-                        self.previous()
-                    elif event.key == pygame.K_F4:
-                        self.toRecordMode()
-                    elif event.key == pygame.K_F5:
-                        self.musicOnOff()
-                    #     self.level += 1
-                    #     self.loadStage()
-                    if event.key in range(48, 58): # 0~9
-                        self.password += chr(event.key)
-                    elif event.key == ord(" "):
-                        self.password += chr(event.key)
-                    elif event.key in range(ord('a'), ord('z') + 1) or event.key in range(ord('A'), ord('Z') + 1): # A~Za~z
-                        self.password += chr(event.key)
-                    elif event.key in range(256, 266): # 0~9
-                        self.password += chr(event.key - 208)
-                    if self.developPassword in self.password:
-                        self.mode = Sokoban.DevelopMode
-                        self.password = ""
-
+                playingHandler()
             elif self.mode == Sokoban.RecodeMode:
-                if pygame.mouse.get_pressed()[0]:
-                    row = (mouse_position[1] - 60) // 30
-                    if row in range(len(self.recode[self.level])):
-                        recode = self.recode[self.level][row]
-                        if type(recode["move"]) is int:
-                            self.loadStage()
-                            self.mode = Sokoban.CopyCatMode
-                            self.lurd = recode["lurd"]
-                            self.copycatName = recode["name"]
-                            self.copycatTimer = pygame.time.get_ticks()
-                if event.type == pygame.KEYDOWN:
-                    if event.key in [pygame.K_RETURN, pygame.K_KP_ENTER]:
-                        if self.breakOff:
-                            self.level += 1
-                            self.loadStage()
-                        self.mode = Sokoban.PlayingMode
-                    elif event.key == pygame.K_F2:
-                        self.loadStage()
-                        self.mode = Sokoban.PlayingMode
+                recodeHandler()
             elif self.mode == Sokoban.CopyCatMode:
-                if event.type == pygame.KEYDOWN:
-                    if event.key in [pygame.K_LEFT, pygame.K_a]:
-                        self.previous()
-                    elif event.key in [pygame.K_RIGHT, pygame.K_d]:
-                        self.next(pygame.time.get_ticks())
+                copyCatHandler()
             elif self.mode == Sokoban.DevelopMode:
-                if event.type == pygame.KEYDOWN:
-                    if event.key in range(48, 58): # 0~9
-                        self.password += chr(event.key)
-                    elif event.key in range(256, 266): # 0~9
-                        self.password += chr(event.key - 208)
-                    elif event.key == ord(" "):
-                        self.password += chr(event.key)
-                    elif event.key in range(ord('a'), ord('z') + 1) or event.key in range(ord('A'), ord('Z') + 1): # A~Za~z
-                        self.password += chr(event.key)
-                    if self.developPassword in self.password:
-                        self.mode = Sokoban.PlayingMode
-                        self.password = ""
+                developHandler()
 
     def move(self, x, y):
         if self.position[1] + y in range(len(self.stage)):
@@ -568,6 +613,7 @@ class Sokoban():
                 self.loadStage()
             self.toRecordMode()
     def quit(self):
+        self.running = False
         pygame.quit()
         quit()
 # [
