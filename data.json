@@ -73,6 +73,16 @@
             "name": "3"
         },
         {
+            "lurd": "rrDDDDrddlluRdrUluRRRdrUUdlllluuuulldRurDDDDrddlluRdrUluRRRdrUlllluuulldRurDDDrddlluRdrUluRRR",
+            "move": 93,
+            "name": "pass"
+        },
+        {
+            "lurd": "rrDDDDrddlluRdrUluRRRdrUUdlllluuuulldRurDDDDrddlluRdrUluRRRdrUlllluuulldRurDDDrddlluRdrUluRRR",
+            "move": 93,
+            "name": "s"
+        },
+        {
             "lurd": "rrDDDDrddlluRdrUluRRRdrUUdlllluuuulldRurDDDDrddlluRuddrUluRRRdrUlllluuulldRurDDDrddlluRdrUluRRR",
             "move": 95,
             "name": "jackylee"
@@ -83,24 +93,14 @@
             "name": "kk"
         },
         {
+            "lurd": "durrDDDDrddlluRdrUluRRRdrUUdlllluuuullddRluurrdDDDrddlluRdrUluRRRdrUlllluuuulDldRurDDDrddlluRdrUluRRR",
+            "move": 101,
+            "name": "00001"
+        },
+        {
             "lurd": "rldduurrDDDDrddlludrruuddlluRdrUluRRRdrUUdlllluuuulldRurDDDDrddlluRdrUluRRRdrUlllluuulldRurDDDrddlluRdrUluRRR",
             "move": 109,
             "name": "3"
-        },
-        {
-            "lurd": "",
-            "move": null,
-            "name": ""
-        },
-        {
-            "lurd": "",
-            "move": null,
-            "name": ""
-        },
-        {
-            "lurd": "",
-            "move": null,
-            "name": ""
         }
     ],
     [
@@ -140,19 +140,19 @@
             "name": "a"
         },
         {
+            "lurd": "RDrDrddLLrruulDLrldRuuulDDuuuurDDDD",
+            "move": 35,
+            "name": "00001"
+        },
+        {
             "lurd": "RDrDrddLLrruulDLruulDDuuuurDDDldRurD",
             "move": 36,
             "name": "a"
         },
         {
-            "lurd": "RDrDrddLrlLrruulDLrldudRuuulDDuuuurDDDD",
-            "move": 39,
-            "name": "2"
-        },
-        {
-            "lurd": "RDrDrddLLrruudulDLruulDDuuuurDDlrDldRurD",
-            "move": 40,
-            "name": "alan"
+            "lurd": "RDrDrddLLrruulDLruulDDuuuurDDDldRurD",
+            "move": 36,
+            "name": "pass"
         }
     ],
     [

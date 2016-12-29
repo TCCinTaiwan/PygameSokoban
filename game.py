@@ -542,7 +542,6 @@ class Sokoban():
                     self.path = []
                     # print((x, y))
                     if self.stage[y][x] in range(3, 5):
-                        # if :
                         difference = mouse_position[0] - x * 30 - 15, mouse_position[1] - y * 30 - 15
                         offsetX = (1 if difference[0] > 0 else -1) if abs(difference[0]) > abs(difference[1]) else 0
                         offsetY = 0 if abs(difference[0]) > abs(difference[1]) else (1 if difference[1] > 0 else -1)
@@ -560,7 +559,7 @@ class Sokoban():
                                     offsetX, offsetY = (-1 if difference[0] > 0 else 1) if offsetX == 0 else 0, 0 if offsetX == 0 else (-1 if difference[1] > 0 else 1)
 
                         if self.distance[y + offsetY][x + offsetX] > 0:
-                            if self.stage[y - offsetY][x - offsetX] in range(2):
+                            if not self.stage[y - offsetY][x - offsetX] in range(2, 5):
                                 self.path = [(-offsetX, -offsetY)]
                         else:
                             offsetX, offsetY = 0, 0
@@ -794,4 +793,4 @@ class Sokoban():
 # (已中止)!: 復原
 
 if __name__ == '__main__':
-    Sokoban()
+    Sokoban(1)
