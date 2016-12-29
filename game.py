@@ -39,6 +39,7 @@ class Sokoban():
         ]
         self.image = None # 主題圖片
         self.menuImage = pygame.image.load("images/menu.png")
+        self.crossImage = pygame.image.load("images/cross.png")
         self.theme = 0 # 主題代號
         self.username = "" # 使用者名稱
         self.mode = Sokoban.InitMode # 遊戲模式
@@ -218,6 +219,14 @@ class Sokoban():
             for y, Raw in enumerate(self.stage):
                 for x, Cell in enumerate(Raw):
                     self.gameDisplay.blit(self.image.subsurface((Cell if Cell < 6 else 5) * 30, 0, 30, 30), (x * 30, y * 30))
+                    if Cell == 3:
+                        deadEnds = [0, 0]
+                        for direction in range(2):
+                            for offsetX, offsetY in Sokoban.AroundOffset[2 * direction: 2 * direction + 2]:
+                                if self.stage[y + offsetY][x + offsetX] in range(2, 5):
+                                    deadEnds[direction] += 1
+                        if deadEnds[0] >= 1 and deadEnds[1] >= 1:
+                            self.gameDisplay.blit(self.crossImage, (x * 30, y * 30))
                     # self.gameDisplay.blit(self.fonts[0].render(str(Cell), 1, self.colors[1].rgb), (x * 30, y * 30))
             if len(self.steps) == 0:
 
@@ -475,8 +484,8 @@ class Sokoban():
                     if self.stage[y][x] in range(3, 5):
                         # if :
                         difference = mouse_position[0] - x * 30 - 15, mouse_position[1] - y * 30 - 15
-                        offsetX = difference[0] // abs(difference[0]) if abs(difference[0]) > abs(difference[1]) else 0
-                        offsetY = 0 if abs(difference[0]) > abs(difference[1]) else difference[1] // abs(difference[1])
+                        offsetX = (1 if difference[0] > 0 else -1) if abs(difference[0]) > abs(difference[1]) else 0
+                        offsetY = 0 if abs(difference[0]) > abs(difference[1]) else (1 if difference[1] > 0 else -1)
                         if self.distance[y + offsetY][x + offsetX] == -1: # 當前方向沒有，測試次要方向
                             # if offsetX == 0:
                             #     offsetX, offsetY = 1 if difference[0] > 0 else -1 , 0
