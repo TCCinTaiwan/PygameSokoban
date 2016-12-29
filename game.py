@@ -18,7 +18,12 @@ class Sokoban():
     RecodeMode = 2
     CopyCatMode = 3
     DevelopMode = 4
-    AroundOffset = [(0, -1), (0, 1), (-1, 0), (1, 0)]
+    AroundOffset = [
+        (0, -1),
+        (0, 1),
+        (-1, 0),
+        (1, 0)
+    ]
     def __init__(self, level = 0):
         pygame.init()
         pygame.display.set_caption('倉庫番')
@@ -40,6 +45,7 @@ class Sokoban():
         self.image = None # 主題圖片
         self.menuImage = pygame.image.load("images/menu.png")
         self.crossImage = pygame.image.load("images/cross.png")
+        self.lockImage = pygame.image.load("images/lock.png")
         self.theme = 0 # 主題代號
         self.username = "" # 使用者名稱
         self.mode = Sokoban.InitMode # 遊戲模式
@@ -122,11 +128,24 @@ class Sokoban():
             for x, Cell in enumerate(Raw):
                 if Cell in range(5, 7):
                     self.position = (x, y)
-        self.calcDistance()
+        self.calcStatus()
         self.startTime = pygame.time.get_ticks() # 初始化開始時間
     def loadTheme(self): # 載入主題背景圖
         self.image = pygame.image.load("images/" + str(self.theme) + ".png")
-    def calcDistance(self):
+    def calcStatus(self):
+        def getBlockSet(x2, y2, returnPosition = True): # 回傳集合
+            bfs = [(x2, y2)] # DFS BFS
+            block = [(x2, y2)]
+            while len(bfs) > 0:
+                x2, y2 = bfs.pop(0)
+                for offsetX2, offsetY2 in Sokoban.AroundOffset:
+                    position = (x2 + offsetX2, y2 + offsetY2)
+                    if position[0] in range(self.size[0]) and position[1] in range(self.size[1]):
+                        if not self.stage[position[1]][position[0]] in range(2, 5):
+                            yield position if returnPosition else self.stage[position[1]][position[0]]
+                            if not position in block:
+                                bfs.append(position)
+                                block.append(position)
         cellCount = self.size[0] * self.size[1]
         self.distance = [[cellCount if cell in range(2) else -1 for cell in row] for row in self.stage]
         self.distance[self.position[1]][self.position[0]] = 0
@@ -142,11 +161,34 @@ class Sokoban():
                                             self.distance[y2 + offset[1]][x2 + offset[0]] = i
             else:
                 break
-
         for y2, row in enumerate(self.distance):
             for x2, cell in enumerate(row):
+                # 填零
                 if cell == cellCount:
                     self.distance[y2][x2] = -1
+        # 0 可以推動 1 無法推動 2 無法到達 3 可推動的死巷子 4 暫時無法推動
+        self.deadEnds = [[None for x2 in range(self.size[0])] for y2 in range(self.size[1])]
+        for y2, row in enumerate(self.distance):
+            for x2, cell in enumerate(row):
+                if self.stage[y2][x2] in range(3, 5):
+                    self.deadEnds[y2][x2] = [-1 for index in range(4)]
+                    for index, offset in enumerate(Sokoban.AroundOffset):
+                        if self.stage[y2 + offset[1]][x2 + offset[0]] == 2:
+                            self.deadEnds[y2][x2][index] = 1 # 無法推動
+                        elif self.stage[y2 + offset[1]][x2 + offset[0]] in range(3, 5):
+                            self.deadEnds[y2][x2][index] = 2 # 暫時無法推動
+                        elif self.distance[y2 + offset[1]][x2 + offset[0]] >= 0:
+                            blockSet = set(getBlockSet(x2 - offset[0], y2 - offset[1]))
+                            if blockSet & {1, 6} != set():
+                                self.deadEnds[y2][x2][index] = 0 # 可推動
+                            elif self.stage[y2 - offset[1]][x2 - offset[0]] == 2:
+                                self.deadEnds[y2][x2][index] = 1 # 無法推動
+                            elif self.stage[y2 - offset[1]][x2 - offset[0]] in range(3, 5):
+                                self.deadEnds[y2][x2][index] = 2 # 暫時無法推動
+                            else:
+                                self.deadEnds[y2][x2][index] = 3 # 可推動的死巷子
+                        else:
+                            self.deadEnds[y2][x2][index] = 2 # 無法到達
     def previous(self): # 上一步
         if len(self.steps) > 0:
             if self.mode == Sokoban.PlayingMode:
@@ -158,7 +200,7 @@ class Sokoban():
             self.stage[self.position[1]][self.position[0]] += 5
             for x, y, offset in step["change"]:
                 self.stage[self.position[1] + y][self.position[0] + x] -= offset
-            self.calcDistance()
+            self.calcStatus()
     def next(self, ticks): # 下一步(CopyCatMode)
         if len(self.steps) < len(self.lurd):
             self.copycatTimer = ticks
@@ -215,19 +257,37 @@ class Sokoban():
                 self.gameDisplay = pygame.display.set_mode((self.display_width, self.display_height + (30 if self.mode == Sokoban.CopyCatMode else 60)))
                 windowSize = pygame.display.get_surface().get_size()
             self.gameDisplay.fill(self.colors[0].rgb)
-
+            # directionIcons = {
+            #     (0, -1) : "↑",
+            #     (0, 1) : "↓",
+            #     (-1, 0) : "←",
+            #     (1, 0) : "→"
+            # }
             for y, Raw in enumerate(self.stage):
                 for x, Cell in enumerate(Raw):
                     self.gameDisplay.blit(self.image.subsurface((Cell if Cell < 6 else 5) * 30, 0, 30, 30), (x * 30, y * 30))
-                    if Cell == 3:
-                        deadEnds = [0, 0]
-                        for direction in range(2):
-                            for offsetX, offsetY in Sokoban.AroundOffset[2 * direction: 2 * direction + 2]:
-                                if self.stage[y + offsetY][x + offsetX] in range(2, 5):
-                                    deadEnds[direction] += 1
-                        if deadEnds[0] >= 1 and deadEnds[1] >= 1:
-                            self.gameDisplay.blit(self.crossImage, (x * 30, y * 30))
-                    # self.gameDisplay.blit(self.fonts[0].render(str(Cell), 1, self.colors[1].rgb), (x * 30, y * 30))
+            for y, Raw in enumerate(self.stage):
+                for x, Cell in enumerate(Raw):
+                    if self.deadEnds[y][x]:
+                        if Cell == 3:
+                            verticalDeadLock = 1 in self.deadEnds[y][x][0:2]
+                            horizonalDeadLock = 1 in self.deadEnds[y][x][2:4]
+                            if verticalDeadLock and horizonalDeadLock:
+                                self.gameDisplay.blit(self.crossImage, (x * 30, y * 30))
+                            else:
+                                verticalLock = self.deadEnds[y][x][0:2] == [2, 2] or verticalDeadLock
+                                horizonalLock = self.deadEnds[y][x][2:4] == [2, 2] or horizonalDeadLock
+                                if verticalLock and horizonalLock:
+                                    self.gameDisplay.blit(self.lockImage, (x * 30, y * 30))
+                            # for index, (offsetX, offsetY) in enumerate(Sokoban.AroundOffset):
+                            #     self.gameDisplay.blit(
+                            #         self.fonts[0].render(
+                            #             str(self.deadEnds[y][x][index]),
+                            #             1,
+                            #             Color.blue
+                            #         ),
+                            #         ((x + offsetX) * 30, (y + offsetY) * 30)
+                            #     )
             if len(self.steps) == 0:
 
                 self.startTime = ticks
@@ -683,7 +743,7 @@ class Sokoban():
                                 self.stage[self.position[1] + y][self.position[0] + x] += 2
                                 self.stage[self.position[1] + 2 * y][self.position[0] + 2 * x] += 3
                                 self.position = (self.position[0] + x, self.position[1] + y)
-                self.calcDistance()
+                self.calcStatus()
                 if not True in [3 in y for y in self.stage]: # win!!
                     if self.mode == Sokoban.PlayingMode:
                         self.breakOff = True
