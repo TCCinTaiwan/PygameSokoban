@@ -30,6 +30,12 @@ class Sokoban():
     debugDeadEnds = 2
     debugSteps = 4
     def __init__(self, level = 0):
+        def readConfig():
+            with open('config.ini') as configFile:
+                for line in configFile:
+                    configName, configValue = line.split("=")
+                    setattr(self, configName, eval(configValue))
+        readConfig()
         pygame.init()
         pygame.display.set_caption('倉庫番')
         pygame.mixer.music.load("musics/0.mp3") # 背景音樂
@@ -94,7 +100,7 @@ class Sokoban():
             "direction" : "horizonal", # vertical horizonal
             "rect" : None
         } # 確認視窗
-        self.loadTheme()
+        self.loadTheme(offset = 0)
         self.loadRecode()
         self.loadStage()
         while self.running:
@@ -138,7 +144,9 @@ class Sokoban():
                     self.position = (x, y)
         self.calcStatus()
         self.startTime = pygame.time.get_ticks() # 初始化開始時間
-    def loadTheme(self): # 載入主題背景圖
+    def loadTheme(self, offset = 1): # 載入主題背景圖
+        if offset != 0:
+            self.theme = (self.themesCount + self.theme + offset) % self.themesCount
         self.image = pygame.image.load("images/" + str(self.theme) + ".png")
     def calcStatus(self):
         def getBlockSet(x2, y2, returnPosition = True): # 回傳集合
@@ -287,10 +295,10 @@ class Sokoban():
             self.gameDisplay.blit(self.fonts[2].render("上一步：F3" , 1, self.colors[1].rgb), (10, 200))
             self.gameDisplay.blit(self.fonts[2].render("榮譽榜：F4" , 1, self.colors[1].rgb), (10, 220))
             self.gameDisplay.blit(self.fonts[2].render("音樂開關：F5" , 1, self.colors[1].rgb), (10, 240))
+            self.gameDisplay.blit(self.fonts[2].render("切換主題：F6", 1, self.colors[1].rgb), (10, 320))
             self.gameDisplay.blit(self.fonts[2].render("確認：Enter" , 1, self.colors[1].rgb), (10, 260))
             self.gameDisplay.blit(self.fonts[2].render("取消：Esc" , 1, self.colors[1].rgb), (10, 280))
             self.gameDisplay.blit(self.fonts[2].render("（點擊榮譽榜可看紀錄）" , 1, self.colors[1].rgb), (10, 300))
-            # self.gameDisplay.blit(self.fonts[2].render("主題：《 %d 》" % (self.theme) , 1, self.colors[1].rgb), (10, 280))
             if ticks % self.blinkCycleTime[1] > self.blinkCycleTime[0]:
                 self.gameDisplay.blit(self.fonts[2].render("歡迎來到倉庫番的世界!!" , 1, self.colors[1].rgb), (120, 380))
         def drawStage():
@@ -409,10 +417,10 @@ class Sokoban():
                 self.fonts[1].set_underline(False)
             if ticks % self.blinkCycleTime[1] > self.blinkCycleTime[0]:
                 self.gameDisplay.blit(self.fonts[2].render("按Enter%s..." % ("進入下一關" if self.breakOff else "開始挑戰"), 1, self.colors[1].rgb), (190 - 80, 400))
-        # def drawDevelop():
-        #     if pygame.display.get_surface().get_size() != (380, 420):
-        #         self.gameDisplay = pygame.display.set_mode((380, 420))
-        #     self.gameDisplay.fill(Color.white)
+        def drawDevelop():
+            if pygame.display.get_surface().get_size() != (380, 420):
+                self.gameDisplay = pygame.display.set_mode((380, 420))
+            self.gameDisplay.fill(Color.white)
         def drawConfirm():
             lineHeight = self.fonts[2].size(" ")[1]
             pygame.draw.rect(self.gameDisplay, Color.black, self.confirm["rect"])
@@ -533,12 +541,9 @@ class Sokoban():
                     self.confirmResize()
             if event.type == pygame.KEYDOWN:
                 # if event.key == pygame.K_LEFT:
-                #     self.theme = self.theme - 1
-                #     self.loadTheme()
+                #     self.loadTheme(offset = -1)
                 # elif event.key == pygame.K_RIGHT:
-                #     self.theme = self.theme + 1
-                #     self.loadTheme()
-                # elif event.key == pygame.K_BACKSPACE:
+                #     self.loadTheme(offset = 1)
                 if event.key == pygame.K_BACKSPACE:
                     self.username = self.username[:-1]
                 elif event.key == pygame.K_ESCAPE:
@@ -583,6 +588,10 @@ class Sokoban():
                         {
                             "text": "音樂: %s (F5)" % ("開" if self.musicPlaying else "關"),
                             "callback" : self.musicOnOff
+                        },
+                        {
+                            "text": "切換主題 (F6)",
+                            "callback" : self.loadTheme
                         },
                         {
                             "text": "結束遊戲 (Alt + F4)",
@@ -695,6 +704,8 @@ class Sokoban():
                     self.toRecordMode()
                 elif event.key == pygame.K_F5:
                     self.musicOnOff()
+                elif event.key == pygame.K_F6:
+                    self.loadTheme(offset = 1)
                 #     self.level += 1
                 #     self.loadStage()
                 if event.key in range(48, 58): # 0~9

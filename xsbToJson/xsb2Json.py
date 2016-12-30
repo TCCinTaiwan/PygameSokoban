@@ -51,7 +51,7 @@ if xsbDirectory:
             print(f"\r[ {index + 1:0{fileCountLen}}/{fileCount} ] {filename}", end = "")
             stage = [[]]
             end = False
-            with open(filename, 'r', encoding='UTF-8') as file:
+            with open(os.path.join(xsbDirectory, filename), 'r', encoding='UTF-8') as file:
                 # width = 0
                 for lineIndex, line in enumerate(file):
                     for char in line:
