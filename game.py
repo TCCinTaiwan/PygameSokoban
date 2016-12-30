@@ -409,10 +409,10 @@ class Sokoban():
                 self.fonts[1].set_underline(False)
             if ticks % self.blinkCycleTime[1] > self.blinkCycleTime[0]:
                 self.gameDisplay.blit(self.fonts[2].render("按Enter%s..." % ("進入下一關" if self.breakOff else "開始挑戰"), 1, self.colors[1].rgb), (190 - 80, 400))
-        def drawDevelop():
-            if pygame.display.get_surface().get_size() != (380, 420):
-                self.gameDisplay = pygame.display.set_mode((380, 420))
-            self.gameDisplay.fill(Color.white)
+        # def drawDevelop():
+        #     if pygame.display.get_surface().get_size() != (380, 420):
+        #         self.gameDisplay = pygame.display.set_mode((380, 420))
+        #     self.gameDisplay.fill(Color.white)
         def drawConfirm():
             lineHeight = self.fonts[2].size(" ")[1]
             pygame.draw.rect(self.gameDisplay, Color.black, self.confirm["rect"])
