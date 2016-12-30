@@ -73,7 +73,7 @@ class Sokoban():
         self.position = (0, 0) # 主角位置
         self.recode = None # 高分紀錄
         self.startTime = 0 # 遊戲開始時間
-        self.copycatTimer = 0
+        self.Timer = 0
         self.copycatCycleTime = 500
         self.blinkCycleTime = (300, 800) # 300 / 800
         self.running = True # 遊戲進行中
@@ -255,15 +255,15 @@ class Sokoban():
             self.calcStatus()
     def next(self, ticks): # 下一步(CopyCatMode)
         if len(self.steps) < len(self.lurd):
-            self.copycatTimer = ticks
+            self.Timer = ticks
             x, y = Sokoban.AroundOffset[["u", "d", "l", "r"].index(self.lurd[len(self.steps)].lower())]
             self.move(x, y)
     def toRecordMode(self): # 開啟榮譽榜
         self.mode = Sokoban.RecodeMode
     def sendConfirm(self): # 送出小視窗
+        self.confirm["show"] = False
         if not self.confirm["options"][self.confirm["select"]]["callback"] is None:
             self.confirm["options"][self.confirm["select"]]["callback"]()
-        self.confirm["show"] = False
     def confirmResize(self): # 計算小視窗大小位置
         windowSize = pygame.display.get_surface().get_size()
         lineHeight = self.fonts[2].size(" ")[1]
@@ -277,6 +277,20 @@ class Sokoban():
         else:
             pygame.mixer.music.unpause()
         self.musicPlaying = not self.musicPlaying
+    def about(self):
+        self.confirm = {
+            "message" : "電腦遊戲設計實務(pygame)的期末作業",
+            "options" : [
+                {
+                    "text": "確定",
+                    "callback" : None
+                }
+            ],
+            "select" : 0,
+            "show" : True,
+            "direction" : "horizonal"
+        }
+        self.confirmResize()
     def draw(self): # 繪圖
         def drawInitMode():
             if pygame.display.get_surface().get_size() != (420, 400):
@@ -302,7 +316,7 @@ class Sokoban():
             if ticks % self.blinkCycleTime[1] > self.blinkCycleTime[0]:
                 self.gameDisplay.blit(self.fonts[2].render("歡迎來到倉庫番的世界!!" , 1, self.colors[1].rgb), (120, 380))
         def drawStage():
-            if ticks - self.copycatTimer > self.copycatCycleTime:
+            if ticks - self.Timer > self.copycatCycleTime:
                 self.next(ticks)
             windowSize = pygame.display.get_surface().get_size()
             if windowSize != (self.display_width, self.display_height + (30 if self.mode == Sokoban.CopyCatMode else 60)):
@@ -522,16 +536,16 @@ class Sokoban():
                         "message" : "是否隨機命名？",
                         "options" : [
                             {
+                                "text": "否",
+                                "callback" : None
+                            },
+                            {
                                 "text": "是(男)",
                                 "callback" : randMaleName
                             },
                             {
                                 "text": "是(女)",
                                 "callback" : randFemaleName
-                            },
-                            {
-                                "text": "否",
-                                "callback" : None
                             }
                         ],
                         "select" : 0,
@@ -592,6 +606,10 @@ class Sokoban():
                         {
                             "text": "切換主題 (F6)",
                             "callback" : self.loadTheme
+                        },
+                        {
+                            "text": "關於...",
+                            "callback" : self.about
                         },
                         {
                             "text": "結束遊戲 (Alt + F4)",
@@ -729,7 +747,7 @@ class Sokoban():
                         self.mode = Sokoban.CopyCatMode
                         self.lurd = recode["lurd"]
                         self.copycatName = recode["name"]
-                        self.copycatTimer = pygame.time.get_ticks()
+                        self.Timer = pygame.time.get_ticks()
                 else:
                     if self.breakOff:
                         self.level += 1
@@ -765,6 +783,26 @@ class Sokoban():
                     self.password = ""
         events = pygame.event.get()
         mouse_position = pygame.mouse.get_pos()
+        # ticks = pygame.time.get_ticks()
+        # if ticks - self.Timer > self.copycatCycleTime:
+        #     self.Timer = pygame.time.get_ticks()
+        #     keys = pygame.key.get_pressed()
+        #     if self.mode == Sokoban.PlayingMode:
+
+        #         if keys[pygame.K_F3]:
+        #             self.previous()
+        #         if keys[pygame.K_LEFT] or keys[pygame.K_a]:
+        #             self.path = []
+        #             self.move(-1, 0)
+        #         if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
+        #             self.path = []
+        #             self.move(1, 0)
+        #         if keys[pygame.K_UP] or keys[pygame.K_w]:
+        #             self.path = []
+        #             self.move(0, -1)
+        #         if keys[pygame.K_DOWN] or keys[pygame.K_s]:
+        #             self.path = []
+        #             self.move(0, 1)
         for event in events:
             if event.type == pygame.KEYDOWN and event.key == pygame.K_F4 and bool(event.mod & pygame.KMOD_ALT) or event.type == pygame.QUIT:
                 quit()
@@ -864,4 +902,4 @@ class Sokoban():
 # (已中止)!: 復原
 
 if __name__ == '__main__':
-    Sokoban(1)
+    Sokoban()
