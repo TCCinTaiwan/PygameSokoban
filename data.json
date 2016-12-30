@@ -83,6 +83,11 @@
             "name": "s"
         },
         {
+            "lurd": "rrDDDDrddlluRdrUluRRRdrUUdlllluuuulldRurDDDDrddlluRdrUluRRRdrUlllluuulldRurDDDrddlluRdrUluRRR",
+            "move": 93,
+            "name": "s"
+        },
+        {
             "lurd": "rrDDDDrddlluRdrUluRRRdrUUdlllluuuulldRurDDDDrddlluRuddrUluRRRdrUlllluuulldRurDDDrddlluRdrUluRRR",
             "move": 95,
             "name": "jackylee"
@@ -93,14 +98,9 @@
             "name": "kk"
         },
         {
-            "lurd": "durrDDDDrddlluRdrUluRRRdrUUdlllluuuullddRluurrdDDDrddlluRdrUluRRRdrUlllluuuulDldRurDDDrddlluRdrUluRRR",
-            "move": 101,
-            "name": "00001"
-        },
-        {
-            "lurd": "rldduurrDDDDrddlludrruuddlluRdrUluRRRdrUUdlllluuuulldRurDDDDrddlluRdrUluRRRdrUlllluuulldRurDDDrddlluRdrUluRRR",
-            "move": 109,
-            "name": "3"
+            "lurd": "rrDDDDrddlluRdrUluRRRdulrdrUUdlllluuuulldRurDDDDrddlluRdrUluRRRdrUlllluuulldRurDDDrddlluRdrUluRRR",
+            "move": 97,
+            "name": "a"
         }
     ],
     [

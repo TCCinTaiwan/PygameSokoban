@@ -24,6 +24,11 @@ class Sokoban():
         (-1, 0),
         (1, 0)
     ]
+    debugOff = 0
+    debugDistance = 1
+    debugStage = 2
+    debugDeadEnds = 2
+    debugSteps = 4
     def __init__(self, level = 0):
         pygame.init()
         pygame.display.set_caption('倉庫番')
@@ -55,6 +60,8 @@ class Sokoban():
         self.display_width = self.size[0] * 30
         self.display_height = self.size[1] * 30
         self.steps = [] # 移動步驟
+        self.deadEnds = None
+        self.distance = None
         self.rank = None
         self.breakOff = False # 成功破關
         self.position = (0, 0) # 主角位置
@@ -69,6 +76,7 @@ class Sokoban():
         self.path = [] # 滑鼠點擊最短路徑
         self.lurd = "" # 移動文字記錄
         self.copycatName = "" # 紀錄持有人
+        self.debug = Sokoban.debugOff # 用來debug: distance steps stage deadEnds
         self.confirm = {
             "message" : "是否重新開始？",
             "options" : [
@@ -125,8 +133,8 @@ class Sokoban():
         self.lurd = ""
         self.path = [] # 清空最短路徑
         for y, Raw in enumerate(self.stage):
-            for x, Cell in enumerate(Raw):
-                if Cell in range(5, 7):
+            for x, cell in enumerate(Raw):
+                if cell in range(5, 7):
                     self.position = (x, y)
         self.calcStatus()
         self.startTime = pygame.time.get_ticks() # 初始化開始時間
@@ -147,7 +155,17 @@ class Sokoban():
                                 bfs.append(position)
                                 block.append(position)
         cellCount = self.size[0] * self.size[1]
-        self.distance = [[cellCount if cell in range(2) else -1 for cell in row] for row in self.stage]
+        # 大於等於零為距離 -1為無法到達的地方 -2為牆 -3為箱子
+        chart = [
+            cellCount,
+            cellCount,
+            -2,
+            -3,
+            -3,
+            cellCount,
+            cellCount
+        ]
+        self.distance = [[chart[cell] for cell in row] for row in self.stage]
         self.distance[self.position[1]][self.position[0]] = 0
         for i in range(1, cellCount):
             if True in [i - 1 in row for row in self.distance]:
@@ -161,11 +179,34 @@ class Sokoban():
                                             self.distance[y2 + offset[1]][x2 + offset[0]] = i
             else:
                 break
+        # 填空
         for y2, row in enumerate(self.distance):
             for x2, cell in enumerate(row):
-                # 填零
                 if cell == cellCount:
                     self.distance[y2][x2] = -1
+        pendingBoxCount = sum([row.count(-3) for row in self.distance])
+        while pendingBoxCount > 0:
+            found = False
+            for y2, row in enumerate(self.distance):
+                for x2, cell in enumerate(row):
+                    if cell == -3:
+                        deadLock = [False, False]
+                        for direction in range(2):
+                            for offsetX, offsetY in Sokoban.AroundOffset[direction * 2: direction * 2 + 2]:
+                                if x2 + offsetX in range(self.size[0]) and y2 + offsetY in range(self.size[1]):
+                                    if self.distance[y2 + offsetY][x2 + offsetX] == -2:
+                                        deadLock[direction] = True
+                                else:
+                                    deadLock[direction] = True
+                        if deadLock.count(True) == 2:
+                            self.distance[y2][x2] = -2
+                            found = True
+                            pendingBoxCount -= 1
+            if not found:
+                break
+
+
+
         # 0 可以推動 1 無法推動 2 無法到達 3 可推動的死巷子 4 暫時無法推動
         self.deadEnds = [[None for x2 in range(self.size[0])] for y2 in range(self.size[1])]
         for y2, row in enumerate(self.distance):
@@ -176,7 +217,10 @@ class Sokoban():
                         if self.stage[y2 + offset[1]][x2 + offset[0]] == 2:
                             self.deadEnds[y2][x2][index] = 1 # 無法推動
                         elif self.stage[y2 + offset[1]][x2 + offset[0]] in range(3, 5):
-                            self.deadEnds[y2][x2][index] = 2 # 暫時無法推動
+                            if self.distance[y2 + offset[1]][x2 + offset[0]] == -2:
+                                self.deadEnds[y2][x2][index] = 1 # 無法推動
+                            else:
+                                self.deadEnds[y2][x2][index] = 2 # 暫時無法推動
                         elif self.distance[y2 + offset[1]][x2 + offset[0]] >= 0:
                             blockSet = set(getBlockSet(x2 - offset[0], y2 - offset[1]))
                             if blockSet & {1, 6} != set():
@@ -264,12 +308,12 @@ class Sokoban():
             #     (1, 0) : "→"
             # }
             for y, Raw in enumerate(self.stage):
-                for x, Cell in enumerate(Raw):
-                    self.gameDisplay.blit(self.image.subsurface((Cell if Cell < 6 else 5) * 30, 0, 30, 30), (x * 30, y * 30))
+                for x, cell in enumerate(Raw):
+                    self.gameDisplay.blit(self.image.subsurface((cell if cell < 6 else 5) * 30, 0, 30, 30), (x * 30, y * 30))
             for y, Raw in enumerate(self.stage):
-                for x, Cell in enumerate(Raw):
+                for x, cell in enumerate(Raw):
                     if self.deadEnds[y][x]:
-                        if Cell == 3:
+                        if cell == 3:
                             verticalDeadLock = 1 in self.deadEnds[y][x][0:2]
                             horizonalDeadLock = 1 in self.deadEnds[y][x][2:4]
                             if verticalDeadLock and horizonalDeadLock:
@@ -279,15 +323,31 @@ class Sokoban():
                                 horizonalLock = self.deadEnds[y][x][2:4] == [2, 2] or horizonalDeadLock
                                 if verticalLock and horizonalLock:
                                     self.gameDisplay.blit(self.lockImage, (x * 30, y * 30))
-                            # for index, (offsetX, offsetY) in enumerate(Sokoban.AroundOffset):
-                            #     self.gameDisplay.blit(
-                            #         self.fonts[0].render(
-                            #             str(self.deadEnds[y][x][index]),
-                            #             1,
-                            #             Color.blue
-                            #         ),
-                            #         ((x + offsetX) * 30, (y + offsetY) * 30)
-                            #     )
+            if self.debug != Sokoban.debugOff:
+                for y, Raw in enumerate(self.stage):
+                    for x, cell in enumerate(Raw):
+                        if self.debug in [Sokoban.debugDistance, Sokoban.debugStage]:
+                            self.gameDisplay.blit(
+                                self.fonts[0].render(
+                                    str(self.distance[y][x] if self.debug == Sokoban.debugDistance else self.stage[y][x]),
+                                    1,
+                                    Color.blue
+                                ),
+                                (x * 30, y * 30)
+                            )
+                        elif self.debug == Sokoban.debugDeadEnds and self.deadEnds[y][x]:
+
+                            for index, (offsetX, offsetY) in enumerate(Sokoban.AroundOffset):
+
+                                self.gameDisplay.blit(
+                                    self.fonts[2].render(
+                                        str(self.deadEnds[y][x][index]),
+                                        1,
+                                        Color.red
+                                    ),
+                                    (x * 30 + 8 + offsetX * 8, y * 30 + 8 + offsetY * 8)
+                                )
+                            # Sokoban.debugSteps
             if len(self.steps) == 0:
 
                 self.startTime = ticks
@@ -545,17 +605,17 @@ class Sokoban():
                         difference = mouse_position[0] - x * 30 - 15, mouse_position[1] - y * 30 - 15
                         offsetX = (1 if difference[0] > 0 else -1) if abs(difference[0]) > abs(difference[1]) else 0
                         offsetY = 0 if abs(difference[0]) > abs(difference[1]) else (1 if difference[1] > 0 else -1)
-                        if self.distance[y + offsetY][x + offsetX] == -1: # 當前方向沒有，測試次要方向
+                        if self.distance[y + offsetY][x + offsetX] < 0: # 當前方向沒有，測試次要方向
                             # if offsetX == 0:
                             #     offsetX, offsetY = 1 if difference[0] > 0 else -1 , 0
                             # else:
                             #     offsetX, offsetY = 0, 1 if difference[1] > 0 else -1
                             offsetX, offsetY = (1 if difference[0] > 0 else -1) if offsetX == 0 else 0, 0 if offsetX == 0 else (1 if difference[1] > 0 else -1)
 
-                            if self.distance[y + offsetY][x + offsetX] == -1: # 當前與次要方向都沒有，測試反方向
+                            if self.distance[y + offsetY][x + offsetX] < 0: # 當前與次要方向都沒有，測試反方向
                                 offsetX = -difference[0] // abs(difference[0]) if abs(difference[0]) > abs(difference[1]) else 0
                                 offsetY = 0 if abs(difference[0]) > abs(difference[1]) else -difference[1] // abs(difference[1])
-                                if self.distance[y + offsetY][x + offsetX] == -1: # 當前方向、反方向與次要方向都沒有，測試次要反方向
+                                if self.distance[y + offsetY][x + offsetX] < 0: # 當前方向、反方向與次要方向都沒有，測試次要反方向
                                     offsetX, offsetY = (-1 if difference[0] > 0 else 1) if offsetX == 0 else 0, 0 if offsetX == 0 else (-1 if difference[1] > 0 else 1)
 
                         if self.distance[y + offsetY][x + offsetX] > 0:
