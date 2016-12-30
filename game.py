@@ -267,8 +267,15 @@ class Sokoban():
     def confirmResize(self): # 計算小視窗大小位置
         windowSize = pygame.display.get_surface().get_size()
         lineHeight = self.fonts[2].size(" ")[1]
-        height = 40 + lineHeight * (len(self.confirm["options"]) if self.confirm["direction"] == "vertical" else 1)
         width = windowSize[0] - 20
+        height = 40 + lineHeight * (len(self.confirm["options"]) if self.confirm["direction"] == "vertical" else 1)
+        messageText = ""
+        for char in self.confirm["message"]:
+            if self.fonts[2].size(messageText + char)[0] <= width - 20:
+                messageText += char
+            else:
+                messageText = ""
+                height += lineHeight
         top = (windowSize[1] - height) // 2
         self.confirm["rect"] = (10, top , width, height)
     def musicOnOff(self): # 切換音樂開關
@@ -279,7 +286,7 @@ class Sokoban():
         self.musicPlaying = not self.musicPlaying
     def about(self):
         self.confirm = {
-            "message" : "電腦遊戲設計實務(pygame)的期末作業",
+            "message" : "這是2016年電腦遊戲設計實務(pygame)的期末作業，是用竣煌的素材下去改寫的。",
             "options" : [
                 {
                     "text": "確定",
@@ -439,7 +446,17 @@ class Sokoban():
             lineHeight = self.fonts[2].size(" ")[1]
             pygame.draw.rect(self.gameDisplay, Color.black, self.confirm["rect"])
             x , y = self.confirm["rect"][0] + 10, self.confirm["rect"][1] + 10
-            self.gameDisplay.blit(self.fonts[2].render(self.confirm["message"], 1, Color.white), (x, y)) # 標題
+            messageText = ""
+            for char in self.confirm["message"]:
+                if self.fonts[2].size(messageText + char)[0] <= self.confirm["rect"][2] - 20:
+                    messageText += char
+                else:
+                    self.gameDisplay.blit(self.fonts[2].render(messageText, 1, Color.white), (x, y)) # 標題
+                    messageText = ""
+                    y += lineHeight
+            self.gameDisplay.blit(self.fonts[2].render(messageText, 1, Color.white), (x, y)) # 標題
+
+            # self.gameDisplay.blit(self.fonts[2].render(self.confirm["message"], 1, Color.white), (x, y)) # 標題
             y += lineHeight
             for index, option in enumerate(self.confirm["options"]):
                 text = ("● " if index == self.confirm["select"] else "○ ") + option["text"]
@@ -507,6 +524,13 @@ class Sokoban():
                 if pygame.rect.Rect(self.confirm["rect"]).collidepoint(mouse_position):
                     charWidth, lineHeight = self.fonts[2].size(" ")
                     x, y = self.confirm["rect"][0] + 10, self.confirm["rect"][1] + 10 + lineHeight
+                    messageText = ""
+                    for char in self.confirm["message"]:
+                        if self.fonts[2].size(messageText + char)[0] <= self.confirm["rect"][2] - 20:
+                            messageText += char
+                        else:
+                            messageText = ""
+                            y += lineHeight
                     for index, option in enumerate(self.confirm["options"]):
                         text = ("● " if index == self.confirm["select"] else "○ ") + option["text"]
                         text_width = self.fonts[2].size(text)[0]
