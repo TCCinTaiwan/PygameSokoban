@@ -676,8 +676,11 @@ class Sokoban():
                             offsetX, offsetY = 0, 0
                         # print((x, y), (x + offsetX, y + offsetY))
 
-                        if pow(x - self.position[0], 2) + pow(y - self.position[1], 2) == 1 and self.path == []:
-                            self.path = [(x - self.position[0], y - self.position[1])]
+                        if pow(x - self.position[0], 2) + pow(y - self.position[1], 2) == 1:
+                            offset = (x - self.position[0], y - self.position[1])
+                            if self.path == []:
+                                if not self.stage[2 * y - self.position[1]][2 * x - self.position[0]] in range(2, 5):
+                                    self.path = [offset]
                     if self.stage[y + offsetY][x + offsetX] in range(2):
                         if self.distance[y + offsetY][x + offsetX] > 0:
                             # self.path = []
