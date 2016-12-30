@@ -27,7 +27,7 @@ class Sokoban():
     debugOff = 0
     debugDistance = 1
     debugStage = 2
-    debugDeadEnds = 2
+    debugDeadEnds = 3
     debugSteps = 4
     def __init__(self, level = 0):
         def readConfig():
@@ -215,7 +215,7 @@ class Sokoban():
 
 
 
-        # 0 可以推動 1 無法推動 2 無法到達 3 可推動的死巷子 4 暫時無法推動
+        # 0 可以推動 1 無法推動 2 無法到達 3 可推動的死巷子 # 4 暫時無法推動
         self.deadEnds = [[None for x2 in range(self.size[0])] for y2 in range(self.size[1])]
         for y2, row in enumerate(self.distance):
             for x2, cell in enumerate(row):
@@ -229,18 +229,31 @@ class Sokoban():
                                 self.deadEnds[y2][x2][index] = 1 # 無法推動
                             else:
                                 self.deadEnds[y2][x2][index] = 2 # 暫時無法推動
-                        elif self.distance[y2 + offset[1]][x2 + offset[0]] >= 0:
-                            blockSet = set(getBlockSet(x2 - offset[0], y2 - offset[1]))
-                            if blockSet & {1, 6} != set():
-                                self.deadEnds[y2][x2][index] = 0 # 可推動
-                            elif self.stage[y2 - offset[1]][x2 - offset[0]] == 2:
-                                self.deadEnds[y2][x2][index] = 1 # 無法推動
-                            elif self.stage[y2 - offset[1]][x2 - offset[0]] in range(3, 5):
-                                self.deadEnds[y2][x2][index] = 2 # 暫時無法推動
-                            else:
-                                self.deadEnds[y2][x2][index] = 3 # 可推動的死巷子
                         else:
-                            self.deadEnds[y2][x2][index] = 2 # 無法到達
+                            if self.distance[y2 + offset[1]][x2 + offset[0]] >= 0:
+                                blockSet = set(getBlockSet(x2 - offset[0], y2 - offset[1]))
+                                if blockSet & {1, 6} != set():
+                                    self.deadEnds[y2][x2][index] = 0 # 可推動
+                                elif self.stage[y2 - offset[1]][x2 - offset[0]] == 2:
+                                    self.deadEnds[y2][x2][index] = 1 # 無法推動
+                                elif self.stage[y2 - offset[1]][x2 - offset[0]] in range(3, 5):
+                                    self.deadEnds[y2][x2][index] = 2 # 暫時無法推動
+                                else:
+                                    self.deadEnds[y2][x2][index] = 3 # 可推動的死巷子
+                            else:
+                                self.deadEnds[y2][x2][index] = 2 # 無法到達
+        for y2, row in enumerate(self.distance): # 判斷兩個戶鎖
+            for x2, cell in enumerate(row):
+                if self.stage[y2][x2] in range(3, 5):
+                    verticalDeadLock = 1 in self.deadEnds[y2][x2][0:2]
+                    horizonalDeadLock = 1 in self.deadEnds[y2][x2][2:4]
+                    for index, offset in enumerate(Sokoban.AroundOffset):
+                        if self.stage[y2 + offset[1]][x2 + offset[0]] in range(3, 5):
+                            verticalDeadLock2 = 1 in self.deadEnds[y2 + offset[1]][x2 + offset[0]][0:2]
+                            horizonalDeadLock2 = 1 in self.deadEnds[y2 + offset[1]][x2 + offset[0]][2:4]
+                            if (verticalDeadLock and verticalDeadLock2) or (horizonalDeadLock and horizonalDeadLock2):
+                                self.deadEnds[y2][x2][index] = 1
+
     def previous(self): # 上一步
         if len(self.steps) > 0:
             if self.mode == Sokoban.PlayingMode:
@@ -374,7 +387,7 @@ class Sokoban():
                                         1,
                                         Color.red
                                     ),
-                                    (x * 30 + 8 + offsetX * 8, y * 30 + 8 + offsetY * 8)
+                                    (x * 30 + 12 + offsetX * 12, y * 30 + 8 + offsetY * 8)
                                 )
                             # Sokoban.debugSteps
             if len(self.steps) == 0:
