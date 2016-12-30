@@ -107,6 +107,18 @@ class Sokoban():
             self.handler()
             self.draw()
         self.quit()
+    def win(self):
+        self.breakOff = True
+        for rank, recode in enumerate(self.recode[self.level]):
+            if type(recode["move"]) is int:
+                if recode["move"] > len(self.steps):
+                    self.rank = rank
+                    self.addRecode()
+                    return
+            else:
+                self.rank = rank
+                self.addRecode()
+                return
     def addRecode(self): # 增加高分紀錄，並存檔
         for rank in range(len(self.recode[self.level]) - 1, self.rank, -1):
             self.recode[self.level][rank] = self.recode[self.level][rank - 1]
@@ -115,15 +127,31 @@ class Sokoban():
             "name" : self.username,
             "move" : len(self.steps)
         }
+        self.saveRecode()
+    def saveRecode(self):
         with open('data.json', 'w') as output_file:
             json.dump(self.recode, output_file, sort_keys = True, indent = 4, ensure_ascii = False)
     def loadRecode(self): # 載入高分紀錄
         with open('data.json') as json_data:
             self.recode = json.load(json_data)
-    def loadStage(self): # 載入關卡資料
+    def loadStage(self, offset = 0): # 載入關卡資料
+        if offset != 0:
+            self.level += offset
         with open('sokoban.json') as json_data:
             stage_data = json.load(json_data)
-            if len(stage_data) <= self.level:
+            if len(stage_data) >= len(self.recode):
+                for index in range(len(self.recode), len(stage_data)):
+                    self.recode.append(
+                        [
+                            {
+                                "lurd": "",
+                                "name" : "",
+                                "move" : None
+                            } for index2 in range(10)
+                        ]
+                    )
+                self.saveRecode()
+            if self.level >= len(stage_data):
                 self.level = 0
             elif self.level  < 0:
                 self.level = len(stage_data) - 1
@@ -764,8 +792,8 @@ class Sokoban():
                     self.musicOnOff()
                 elif event.key == pygame.K_F6:
                     self.loadTheme(offset = 1)
-                #     self.level += 1
-                #     self.loadStage()
+                elif event.key == pygame.K_F7:
+                    self.loadStage(1)
                 if event.key in range(48, 58): # 0~9
                     self.password += chr(event.key)
                 elif event.key == ord(" "):
@@ -790,14 +818,12 @@ class Sokoban():
                         self.Timer = pygame.time.get_ticks()
                 else:
                     if self.breakOff:
-                        self.level += 1
-                        self.loadStage()
+                        self.loadStage(1)
                     self.mode = Sokoban.PlayingMode
             if event.type == pygame.KEYDOWN:
                 if event.key in [pygame.K_RETURN, pygame.K_KP_ENTER]:
                     if self.breakOff:
-                        self.level += 1
-                        self.loadStage()
+                        self.loadStage(1)
                     self.mode = Sokoban.PlayingMode
                 elif event.key == pygame.K_F2:
                     self.loadStage()
@@ -894,17 +920,7 @@ class Sokoban():
                 self.calcStatus()
                 if not True in [3 in y for y in self.stage]: # win!!
                     if self.mode == Sokoban.PlayingMode:
-                        self.breakOff = True
-                        for rank, recode in enumerate(self.recode[self.level]):
-                            if type(recode["move"]) is int:
-                                if recode["move"] > len(self.steps):
-                                    self.rank = rank
-                                    self.addRecode()
-                                    break
-                            else:
-                                self.rank = rank
-                                self.addRecode()
-                                break
+                        self.win()
                     else:
                         self.loadStage()
                     self.toRecordMode()

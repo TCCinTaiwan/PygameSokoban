@@ -131,9 +131,7 @@ if xsbDirectory:
                 r'(?!\w)(]*)\"(\[*)(?![\w:])',
                 r"\g<1>\g<2>",
                 json.dumps(
-                    [
-                        stages
-                    ],
+                    stages,
                     indent = 4,
                     ensure_ascii = False
                 )
